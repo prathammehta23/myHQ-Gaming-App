@@ -163,6 +163,15 @@
             const timeLabel = ev.time || '--';
             const ruleText = getRuleText(ev).replace(/'/g, "\\'");
 
+            let rulesAction = `alert('Rulebook: ${ruleText}')`;
+            let rulesBtnText = 'Read Rules';
+            if (ev.rulesUrl) {
+                rulesAction = `window.open('${ev.rulesUrl}', '_blank')`;
+                rulesBtnText = 'Read Rulebook (PDF)';
+            } else if (ev.rules && (ev.rules.startsWith('http://') || ev.rules.startsWith('https://'))) {
+                rulesAction = `window.open('${ev.rules}', '_blank')`;
+            }
+
             return `
                 <div class="card event-card">
                     <div class="event-date">
@@ -177,7 +186,7 @@
                         <h2 class="mb-1 mt-3">${ev.title || 'Untitled Event'}</h2>
                         <p class="text-muted">Time: ${timeLabel}</p>
                         <p class="mb-2">${ev.type === 'external' ? 'This event includes platform links and supporting details.' : 'This event is tied to one of the arcade games.'}</p>
-                        <button class="btn btn-outline rules-link" style="width:auto;" onclick="alert('Rulebook: ${ruleText}')">Read Rules</button>
+                        <button class="btn btn-outline rules-link" style="width:auto;" onclick="${rulesAction}">${rulesBtnText}</button>
                     </div>
                 </div>`;
         }
@@ -213,9 +222,16 @@
                 ? futureEvents.slice(0, 6).map((ev) => {
                     const date = ev.parsedDate;
                     const platforms = Array.isArray(ev.platforms) && ev.platforms.length
-                        ? ev.platforms.map((platform) => `<div class="detail-line"><strong>${platform.name}:</strong> ${platform.link}</div>`).join('')
+                        ? ev.platforms.map((platform) => `<div class="detail-line"><strong>${platform.name}:</strong> <a href="${platform.link}" target="_blank" style="color: var(--primary); text-decoration: underline;">${platform.link}</a></div>`).join('')
                         : '';
-                    const ruleText = getRuleText(ev);
+                    const ruleTextRaw = getRuleText(ev);
+                    let ruleTextHtml = ruleTextRaw;
+                    if (ev.rulesUrl) {
+                        ruleTextHtml = `<a href="${ev.rulesUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;">View PDF</a>`;
+                    } else if (ev.rules && (ev.rules.startsWith('http://') || ev.rules.startsWith('https://'))) {
+                        ruleTextHtml = `<a href="${ev.rules}" target="_blank" style="color: var(--primary); text-decoration: underline;">Open Link</a>`;
+                    }
+                    
                     return `
                         <div class="upcoming-item">
                             <span class="event-chip">${getEventLabel(ev)}</span>
@@ -224,7 +240,7 @@
                             <div class="detail-line"><strong>Type:</strong> ${ev.type === 'external' ? 'External Event' : 'Base Game'}</div>
                             ${ev.type === 'external' ? `<div class="detail-line"><strong>Category:</strong> ${ev.category || '--'}</div>` : ''}
                             ${platforms}
-                            <div class="detail-line"><strong>Rules:</strong> ${ruleText}</div>
+                            <div class="detail-line"><strong>Rules:</strong> ${ruleTextHtml}</div>
                         </div>`;
                 }).join('')
                 : '<p class="text-center text-muted">No upcoming events.</p>';

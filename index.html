@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>myHQ Arcade | Lobby</title>
@@ -186,6 +187,7 @@
         }
 
         @media (max-width: 980px) {
+
             .featured-event,
             .mini-cta {
                 grid-template-columns: 1fr;
@@ -207,6 +209,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="navbar-container"></div>
 
@@ -231,7 +234,8 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group"><input type="text" id="rDept" placeholder="Department (e.g. HR Ops, Tech)" required></div>
+                <div class="form-group"><input type="text" id="rDept" placeholder="Department (e.g. HR Ops, Tech)"
+                        required></div>
                 <button type="submit" class="btn btn-primary">Enter the Arcade</button>
             </form>
         </div>
@@ -256,11 +260,13 @@
                         <span class="event-chip">Calendar Highlight</span>
                     </div>
                     <h2 id="featuredEventTitle" class="mb-2">Loading next event...</h2>
-                    <p id="featuredEventSummary" class="mb-3">We’re fetching the next scheduled event from the calendar.</p>
+                    <p id="featuredEventSummary" class="mb-3">We’re fetching the next scheduled event from the calendar.
+                    </p>
                     <div id="featuredEventMeta" class="event-meta"></div>
                     <div class="actions" style="margin-top:16px;">
                         <a href="calendar.html" class="btn btn-outline" style="width:auto;">View Full Calendar</a>
-                        <button id="featuredRulesBtn" class="btn btn-primary" style="width:auto;" disabled>Read Rules</button>
+                        <button id="featuredRulesBtn" class="btn btn-primary" style="width:auto;" disabled>Read
+                            Rules</button>
                     </div>
                 </div>
             </section>
@@ -277,7 +283,8 @@
                 </div>
                 <div class="mini-cta-actions">
                     <a href="mini-games.html" class="btn btn-primary" style="width:auto;">Open Mini Games</a>
-                    <a href="player.html" class="btn btn-outline lobby-secondary-btn" style="width:auto;">Open Player Dashboard</a>
+                    <a href="player.html" class="btn btn-outline lobby-secondary-btn" style="width:auto;">Open Player
+                        Dashboard</a>
                 </div>
             </section>
 
@@ -299,7 +306,7 @@
         import { injectNavbar } from './js/navbar.js';
         import { collection, getDocs, query, orderBy, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { playSuccessSound } from './js/sounds.js';
-        
+
         injectNavbar();
 
         function parseEventDate(event) {
@@ -364,7 +371,7 @@
                 : 'Arcade event tied to one of the myHQ game formats.';
 
             const platformList = Array.isArray(ev.platforms) && ev.platforms.length
-                ? ev.platforms.map((p) => `${p.name}: ${p.link}`).join(' | ')
+                ? ev.platforms.map((p) => `${p.name}: <a href="${p.link}" target="_blank" style="color: #ffeb3b; text-decoration: underline;">${p.link}</a>`).join(' | ')
                 : 'Platforms: --';
 
             meta.innerHTML = `
@@ -375,8 +382,16 @@
             `;
 
             rulesBtn.disabled = false;
-            rulesBtn.innerText = 'Read Rules';
-            rulesBtn.onclick = () => alert(`Rulebook: ${safeAlertText(ruleText)}`);
+            rulesBtn.innerText = ev.rulesUrl ? 'Read Rulebook (PDF)' : 'Read Rules';
+            rulesBtn.onclick = () => {
+                if (ev.rulesUrl) {
+                    window.open(ev.rulesUrl, '_blank');
+                } else if (ev.rules && (ev.rules.startsWith('http://') || ev.rules.startsWith('https://'))) {
+                    window.open(ev.rules, '_blank');
+                } else {
+                    alert(`Rulebook: ${safeAlertText(ruleText)}`);
+                }
+            };
         }
 
         async function loadFeaturedEvent() {
@@ -424,7 +439,7 @@
         }
 
         const storedEmail = localStorage.getItem('myhq_arcade_email');
-        if(!storedEmail) {
+        if (!storedEmail) {
             document.getElementById('regModal').style.display = 'flex';
         } else {
             document.getElementById('playerName').innerText = localStorage.getItem('myhq_arcade_name');
@@ -443,12 +458,12 @@
                 await setDoc(userDocRef, user, { merge: true });
                 localStorage.setItem('myhq_arcade_email', user.email);
                 localStorage.setItem('myhq_arcade_name', user.name);
-                
+
                 document.getElementById('regModal').style.display = 'none';
                 document.getElementById('playerName').innerText = user.name;
                 playSuccessSound();
-            } catch (err) { 
-                alert("Registration failed. Please try again."); 
+            } catch (err) {
+                alert("Registration failed. Please try again.");
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -459,4 +474,5 @@
         renderMasterGames();
     </script>
 </body>
+
 </html>
