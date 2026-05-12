@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Cross-Climb icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#173ea8"/>
+      <stop offset="100%" stop-color="#00bcd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <path d="M38 24v72M58 34v62M78 24v72" stroke="#f8fbff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M34 42h48M38 60h40M42 78h32" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="78" cy="24" r="6" fill="#ffffff" opacity="0.95"/>
+</svg>

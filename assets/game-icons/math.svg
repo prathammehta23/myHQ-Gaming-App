@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Math Sprint icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e4ed8"/>
+      <stop offset="100%" stop-color="#0f57d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <rect x="24" y="24" width="72" height="72" rx="18" fill="#f8fbff"/>
+  <path d="M46 40h28M46 56h28M46 72h28" stroke="#1e4ed8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M36 32l6 6M84 32l-6 6" stroke="#00bcd4" stroke-width="5" stroke-linecap="round"/>
+  <path d="M78 80l8 8" stroke="#1e4ed8" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="36" cy="82" r="6" fill="#00bcd4"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Bingo icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e4ed8"/>
+      <stop offset="100%" stop-color="#00bcd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <circle cx="34" cy="34" r="12" fill="#ffffff" opacity="0.16"/>
+  <circle cx="90" cy="30" r="9" fill="#ffffff" opacity="0.16"/>
+  <circle cx="86" cy="88" r="11" fill="#ffffff" opacity="0.16"/>
+  <rect x="24" y="49" width="72" height="40" rx="14" fill="#f8fbff"/>
+  <path d="M34 59h52M34 71h52" stroke="#d7e2ff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M46 50v38M60 50v38M74 50v38" stroke="#d7e2ff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="41" cy="59" r="5.5" fill="#1e4ed8"/>
+  <circle cx="60" cy="71" r="5.5" fill="#00bcd4"/>
+  <circle cx="79" cy="59" r="5.5" fill="#1e4ed8"/>
+</svg>

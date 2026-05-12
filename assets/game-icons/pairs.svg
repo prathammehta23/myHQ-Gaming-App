@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Memory Pairs icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#173ea8"/>
+      <stop offset="100%" stop-color="#00bcd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <rect x="26" y="34" width="34" height="48" rx="12" fill="#ffffff" opacity="0.18"/>
+  <rect x="60" y="40" width="34" height="48" rx="12" fill="#ffffff" opacity="0.95"/>
+  <circle cx="43" cy="58" r="6" fill="#f8fbff"/>
+  <circle cx="77" cy="64" r="6" fill="#1e4ed8"/>
+  <path d="M38 96c8-8 18-8 26 0M68 96c8-8 18-8 26 0" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+</svg>

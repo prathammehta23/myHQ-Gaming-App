@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Clue Cascade icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f57d6"/>
+      <stop offset="100%" stop-color="#00bcd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <rect x="26" y="28" width="44" height="54" rx="12" fill="#ffffff" opacity="0.16"/>
+  <rect x="40" y="40" width="52" height="48" rx="12" fill="#ffffff" opacity="0.34"/>
+  <rect x="52" y="50" width="42" height="36" rx="12" fill="#f8fbff"/>
+  <circle cx="62" cy="61" r="8" fill="#1e4ed8"/>
+  <path d="M69 68l11 11" stroke="#1e4ed8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M82 30l9 9-9 9" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

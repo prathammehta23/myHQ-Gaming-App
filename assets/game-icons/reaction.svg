@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Reaction Time icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d2a52"/>
+      <stop offset="100%" stop-color="#00bcd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg)"/>
+  <circle cx="60" cy="60" r="26" fill="none" stroke="#f8fbff" stroke-width="7" opacity="0.8"/>
+  <circle cx="60" cy="60" r="14" fill="none" stroke="#f8fbff" stroke-width="7"/>
+  <circle cx="60" cy="60" r="4" fill="#f8fbff"/>
+  <path d="M60 18v13M60 89v13M18 60h13M89 60h13" stroke="#f8fbff" stroke-width="6" stroke-linecap="round"/>
+</svg>

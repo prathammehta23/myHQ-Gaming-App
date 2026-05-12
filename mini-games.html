@@ -33,27 +33,45 @@
 
         .launcher-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
         }
 
         .launch-card {
             background: white;
-            border-radius: 14px;
+            border-radius: 18px;
             border: 1px solid #e4e8f6;
-            padding: 18px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 100%;
         }
 
-        .launch-card h3 {
+        .launch-card-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .launch-card-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .launch-card-head h3 {
             margin-bottom: 8px;
             color: #233273;
+            font-size: 1.22rem;
+            line-height: 1.05;
         }
 
         .launch-card p {
             color: #5d6578;
-            font-size: 0.92rem;
-            min-height: 45px;
-            margin-bottom: 12px;
+            font-size: 0.96rem;
+            line-height: 1.55;
+            margin-bottom: 0;
+            min-height: 56px;
         }
 
         .stage {
@@ -227,6 +245,10 @@
             .mini-shell {
                 padding: 18px;
             }
+
+            .launcher-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -246,43 +268,99 @@
 
             <div class="launcher-grid">
                 <div class="launch-card">
-                    <h3>Mini Sudoku</h3>
-                    <p>Valid 4x4 Sudoku with correct row, column, and box rules.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Mini Sudoku icon">
+                            <img src="assets/icons/icon_sudoku.png" alt="Mini Sudoku game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Mini Sudoku</h3>
+                            <p>4x4 Sudoku with row, column, and box rules.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('sudoku')">Play Sudoku</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Zip Unscramble</h3>
-                    <p>Easy to medium everyday words. 50 rounds.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Zip Unscramble icon">
+                            <img src="assets/icons/icon_zip.png" alt="Zip Unscramble game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Zip Unscramble</h3>
+                            <p>Easy everyday words. 50 quick rounds.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('zip')">Play Zip</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Cross-Climb</h3>
-                    <p>Word ladder rounds: one letter changes at each step.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Cross-Climb icon">
+                            <img src="assets/game-icons/cross-climb.svg" alt="Cross-Climb game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Cross-Climb</h3>
+                            <p>Word ladder game with one-letter steps.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('cross')">Play Cross-Climb</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Simon Says</h3>
-                    <p>Repeat the color/tone sequence. Memory challenge.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Simon Says icon">
+                            <img src="assets/icons/icon_simon.png" alt="Simon Says game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Simon Says</h3>
+                            <p>Repeat the sequence. A fast memory challenge.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('simon')">Play Simon</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Tap Speed</h3>
-                    <p>Tap as many times as you can in 10 seconds.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Tap Speed icon">
+                            <img src="assets/icons/icon_tap.png" alt="Tap Speed game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Tap Speed</h3>
+                            <p>Tap as fast as you can in 10 seconds.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('tap')">Play Tap</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Reaction Time</h3>
-                    <p>Wait for the color change, then click as fast as you can.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Reaction Time icon">
+                            <img src="assets/icons/icon_reaction.png" alt="Reaction Time game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Reaction Time</h3>
+                            <p>Wait for the change, then click fast.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('reaction')">Play Reaction</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Memory Pairs</h3>
-                    <p>Find matching pairs in the fewest flips.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Memory Pairs icon">
+                            <img src="assets/icons/icon_pairs.png" alt="Memory Pairs game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Memory Pairs</h3>
+                            <p>Find matching pairs in the fewest flips.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('pairs')">Play Pairs</button>
                 </div>
                 <div class="launch-card">
-                    <h3>Math Sprint</h3>
-                    <p>Solve quick arithmetic to earn points.</p>
+                    <div class="launch-card-head">
+                        <button class="game-icon-btn" type="button" aria-label="Math Sprint icon">
+                            <img src="assets/icons/icon_math.png" alt="Math Sprint game icon">
+                        </button>
+                        <div class="launch-card-copy">
+                            <h3>Math Sprint</h3>
+                            <p>Solve quick arithmetic to earn points.</p>
+                        </div>
+                    </div>
                     <button class="btn btn-primary" onclick="openGame('math')">Play Math</button>
                 </div>
             </div>
