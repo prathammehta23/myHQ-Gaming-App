@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arcade Calendar</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .calendar-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.75fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .calendar-panel {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+        }
+
+        .calendar-stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .event-card {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+            border-left: 6px solid var(--accent);
+            overflow: hidden;
+        }
+
+        .event-date {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 84px;
+            align-self: center;
+        }
+
+        .event-details {
+            flex: 1;
+        }
+
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .event-chip {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .upcoming-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .upcoming-item {
+            border: 1px solid #dfe7fb;
+            border-radius: 16px;
+            background: #f8faff;
+            padding: 14px;
+        }
+
+        .upcoming-item h3 {
+            margin-bottom: 6px;
+            font-size: 1.02rem;
+        }
+
+        .upcoming-item .small-meta {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            margin-top: 6px;
+        }
+
+        .upcoming-item .detail-line {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .rules-link {
+            display: inline-block;
+            margin-top: 10px;
+            width: auto;
+        }
+
+        @media (max-width: 980px) {
+            .calendar-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="container">
+        <h1 class="text-center mb-4">Tournament Schedule</h1>
+        <div class="calendar-layout">
+            <section class="calendar-panel">
+                <h2 class="mb-3">All Scheduled Events</h2>
+                <div id="calendarList" class="calendar-stack"></div>
+            </section>
+
+            <aside class="calendar-panel">
+                <h2 class="mb-3">Upcoming Events</h2>
+                <div id="upcomingList" class="upcoming-list"></div>
+            </aside>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './js/firebase-config.js';
+        import { injectNavbar } from './js/navbar.js';
+        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+        injectNavbar();
+
+        function parseEventDate(event) {
+            if (!event || !event.date) return null;
+            const raw = String(event.date);
+            const timePart = event.time ? String(event.time).trim() : '00:00';
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return new Date(`${raw}T${timePart}:00`);
+            }
+
+            const parsed = new Date(raw);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function getEventLabel(ev) {
+            if (!ev) return 'Event';
+            if (ev.type === 'external') return ev.category || 'External Event';
+            return ev.game || 'Base Game';
+        }
+
+        function getRuleText(ev) {
+            if (!ev) return 'No rules provided.';
+            if (ev.rules) return ev.rules;
+            if (ev.rulesUrl) return 'Rulebook available via uploaded PDF.';
+            return 'No rules provided.';
+        }
+
+        function renderEventCard(ev, docId) {
+            const eventDate = parseEventDate(ev);
+            const dateLabel = eventDate ? eventDate.toLocaleString('default', { month: 'short' }) : '--';
+            const dayLabel = eventDate ? eventDate.getDate() : '--';
+            const timeLabel = ev.time || '--';
+            const ruleText = getRuleText(ev).replace(/'/g, "\\'");
+
+            return `
+                <div class="card event-card">
+                    <div class="event-date">
+                        <span class="mono" style="display:block; font-size:0.7rem; color: #e2e8f0;">${dateLabel}</span>
+                        <strong style="font-size:1.8rem; color: white;">${dayLabel}</strong>
+                    </div>
+                    <div class="event-details">
+                        <div class="event-meta">
+                            <span class="event-chip">${getEventLabel(ev)}</span>
+                            <span class="event-chip">${ev.type === 'external' ? 'External Event' : 'Base Game'}</span>
+                        </div>
+                        <h2 class="mb-1 mt-3">${ev.title || 'Untitled Event'}</h2>
+                        <p class="text-muted">Time: ${timeLabel}</p>
+                        <p class="mb-2">${ev.type === 'external' ? 'This event includes platform links and supporting details.' : 'This event is tied to one of the arcade games.'}</p>
+                        <button class="btn btn-outline rules-link" style="width:auto;" onclick="alert('Rulebook: ${ruleText}')">Read Rules</button>
+                    </div>
+                </div>`;
+        }
+
+        async function loadEvents() {
+            const list = document.getElementById('calendarList');
+            const upcoming = document.getElementById('upcomingList');
+            list.innerHTML = '<p class="text-center text-muted">Loading schedule...</p>';
+            upcoming.innerHTML = '<p class="text-center text-muted">Loading upcoming events...</p>';
+            
+            const snap = await getDocs(query(collection(db, "events"), orderBy("date", "asc")));
+            const events = [];
+            snap.forEach((doc) => {
+                events.push({ id: doc.id, ...doc.data() });
+            });
+
+            const now = new Date();
+            const sortedEvents = events
+                .map((ev) => ({ ...ev, parsedDate: parseEventDate(ev) }))
+                .sort((a, b) => {
+                    const aTime = a.parsedDate ? a.parsedDate.getTime() : 0;
+                    const bTime = b.parsedDate ? b.parsedDate.getTime() : 0;
+                    return aTime - bTime;
+                });
+
+            const futureEvents = sortedEvents.filter((ev) => ev.parsedDate && ev.parsedDate.getTime() >= now.getTime());
+
+            list.innerHTML = sortedEvents.length
+                ? sortedEvents.map((ev) => renderEventCard(ev, ev.id)).join('')
+                : '<p class="text-center text-muted">No scheduled events yet.</p>';
+
+            upcoming.innerHTML = futureEvents.length
+                ? futureEvents.slice(0, 6).map((ev) => {
+                    const date = ev.parsedDate;
+                    const platforms = Array.isArray(ev.platforms) && ev.platforms.length
+                        ? ev.platforms.map((platform) => `<div class="detail-line"><strong>${platform.name}:</strong> ${platform.link}</div>`).join('')
+                        : '';
+                    const ruleText = getRuleText(ev);
+                    return `
+                        <div class="upcoming-item">
+                            <span class="event-chip">${getEventLabel(ev)}</span>
+                            <h3>${ev.title || 'Untitled Event'}</h3>
+                            <div class="small-meta">${date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '--'} · ${ev.time || '--'}</div>
+                            <div class="detail-line"><strong>Type:</strong> ${ev.type === 'external' ? 'External Event' : 'Base Game'}</div>
+                            ${ev.type === 'external' ? `<div class="detail-line"><strong>Category:</strong> ${ev.category || '--'}</div>` : ''}
+                            ${platforms}
+                            <div class="detail-line"><strong>Rules:</strong> ${ruleText}</div>
+                        </div>`;
+                }).join('')
+                : '<p class="text-center text-muted">No upcoming events.</p>';
+        }
+        loadEvents();
+    </script>
+</body>
+</html>

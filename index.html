@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>myHQ Arcade | Lobby</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .lobby-shell {
+            display: grid;
+            gap: 22px;
+        }
+
+        .lobby-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+        }
+
+        .featured-event {
+            display: grid;
+            grid-template-columns: 0.85fr 1.15fr;
+            gap: 20px;
+            align-items: stretch;
+            background: linear-gradient(135deg, rgba(30, 78, 216, 0.98), rgba(0, 188, 212, 0.95));
+            color: white;
+            border: none;
+            overflow: hidden;
+        }
+
+        .featured-event h2,
+        .featured-event h3,
+        .featured-event p {
+            color: white;
+        }
+
+        .featured-date {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 220px;
+        }
+
+        .featured-date .month {
+            font-size: 1.05rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .featured-date .day {
+            font-size: clamp(3rem, 7vw, 5rem);
+            line-height: 1;
+            font-weight: 800;
+            margin: 8px 0 12px;
+        }
+
+        .featured-content {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 20px;
+            padding: 22px;
+        }
+
+        .event-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .event-chip {
+            display: inline-block;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .event-meta {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+            font-size: 0.95rem;
+        }
+
+        .event-meta strong {
+            color: white;
+        }
+
+        .mini-cta {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+            align-items: center;
+            background: linear-gradient(135deg, #ffffff, #f3f7ff);
+        }
+
+        .mini-cta-copy p {
+            max-width: 760px;
+            color: var(--text-muted);
+        }
+
+        .mini-cta-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .mini-cta-actions .lobby-primary-btn {
+            width: auto;
+            min-width: 180px;
+            padding: 14px 22px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), #0f57d6);
+            box-shadow: 0 10px 22px rgba(30, 78, 216, 0.24);
+        }
+
+        .mini-cta-actions .lobby-primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(30, 78, 216, 0.3);
+        }
+
+        .mini-cta-actions .lobby-secondary-btn {
+            width: auto;
+            min-width: 180px;
+            padding: 14px 22px;
+            border-radius: 14px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 14px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .section-head p {
+            color: var(--text-muted);
+            max-width: 760px;
+        }
+
+        .master-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .master-card {
+            border-top: 4px solid var(--primary);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 235px;
+        }
+
+        .master-card .tag {
+            display: inline-block;
+            background: rgba(30, 78, 216, 0.12);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .master-card p {
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            min-height: 44px;
+        }
+
+        .master-card .btn {
+            margin-top: auto;
+        }
+
+        @media (max-width: 980px) {
+            .featured-event,
+            .mini-cta {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-cta-actions {
+                justify-content: flex-start;
+            }
+
+            .master-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 620px) {
+            .master-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="modal-overlay" id="regModal" style="display:none;">
+        <div class="modal-content">
+            <h2 class="mb-2">Welcome to the Arcade</h2>
+            <p class="text-muted mb-4">Register once to compete in all myHQ events.</p>
+            <form id="regForm">
+                <div class="form-group"><input type="text" id="rName" placeholder="Full Name" required></div>
+                <div class="form-group"><input type="email" id="rEmail" placeholder="Work Email" required></div>
+                <div class="form-group">
+                    <select id="rCity" required>
+                        <option value="" disabled selected>Select Hub / City</option>
+                        <option value="Gurgaon">Gurgaon</option>
+                        <option value="Delhi">Delhi</option>
+                        <option value="Noida">Noida</option>
+                        <option value="Bangalore">Bangalore</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Chennai">Chennai</option>
+                        <option value="Hyderabad">Hyderabad</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group"><input type="text" id="rDept" placeholder="Department (e.g. HR Ops, Tech)" required></div>
+                <button type="submit" class="btn btn-primary">Enter the Arcade</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="text-center mb-4">
+            <p class="mono badge-accent mb-2">Welcome, <span id="playerName">Player</span></p>
+            <h1 class="mb-3">The Game Hub</h1>
+        </header>
+
+        <div class="lobby-shell">
+            <section class="lobby-panel featured-event" id="featuredEventShell">
+                <div class="featured-date">
+                    <div class="month">Loading</div>
+                    <div class="day">--</div>
+                    <div class="mono" style="opacity:0.9;">Next up in myHQ</div>
+                </div>
+                <div class="featured-content">
+                    <div class="event-chips">
+                        <span class="event-chip">Upcoming Event</span>
+                        <span class="event-chip">Calendar Highlight</span>
+                    </div>
+                    <h2 id="featuredEventTitle" class="mb-2">Loading next event...</h2>
+                    <p id="featuredEventSummary" class="mb-3">We’re fetching the next scheduled event from the calendar.</p>
+                    <div id="featuredEventMeta" class="event-meta"></div>
+                    <div class="actions" style="margin-top:16px;">
+                        <a href="calendar.html" class="btn btn-outline" style="width:auto;">View Full Calendar</a>
+                        <button id="featuredRulesBtn" class="btn btn-primary" style="width:auto;" disabled>Read Rules</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="lobby-panel mini-cta">
+                <div class="mini-cta-copy">
+                    <div class="section-head" style="margin-bottom:10px;">
+                        <div>
+                            <p class="mono badge-accent mb-2">Quick Play</p>
+                            <h2 class="mb-2">Mini Games</h2>
+                        </div>
+                    </div>
+                    <p>Fun Games! Jump into the mini game hub for streaks, leaderboards, and faster rounds.</p>
+                </div>
+                <div class="mini-cta-actions">
+                    <a href="mini-games.html" class="btn btn-primary" style="width:auto;">Open Mini Games</a>
+                    <a href="player.html" class="btn btn-outline lobby-secondary-btn" style="width:auto;">Open Player Dashboard</a>
+                </div>
+            </section>
+
+            <section class="lobby-panel">
+                <div class="section-head">
+                    <div>
+                        <p class="mono badge-accent mb-2">Signature Circuit</p>
+                        <h2 class="mb-2">Arcade Vault</h2>
+                        <p>Major Games with huge prices!</p>
+                    </div>
+                </div>
+                <div class="game-grid master-grid" id="masterGamesGrid"></div>
+            </section>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GAMES, db } from './js/firebase-config.js';
+        import { injectNavbar } from './js/navbar.js';
+        import { collection, getDocs, query, orderBy, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { playSuccessSound } from './js/sounds.js';
+        
+        injectNavbar();
+
+        function parseEventDate(event) {
+            if (!event || !event.date) return null;
+            const raw = String(event.date);
+            const timePart = event.time ? String(event.time).trim() : '00:00';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return new Date(`${raw}T${timePart}:00`);
+            }
+            const parsed = new Date(raw);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function getEventLabel(ev) {
+            if (!ev) return 'Event';
+            if (ev.type === 'external') return ev.category || 'External Event';
+            return ev.game || 'Base Game';
+        }
+
+        function getRuleText(ev) {
+            if (!ev) return 'No rules provided.';
+            if (ev.rules) return ev.rules;
+            if (ev.rulesUrl) return 'Rulebook available via uploaded PDF.';
+            return 'No rules provided.';
+        }
+
+        function safeAlertText(text) {
+            return String(text || '').replace(/'/g, "\\'");
+        }
+
+        function renderFeaturedEvent(ev) {
+            const shell = document.getElementById('featuredEventShell');
+            const title = document.getElementById('featuredEventTitle');
+            const summary = document.getElementById('featuredEventSummary');
+            const meta = document.getElementById('featuredEventMeta');
+            const rulesBtn = document.getElementById('featuredRulesBtn');
+
+            if (!ev) {
+                shell.querySelector('.month').innerText = 'Soon';
+                shell.querySelector('.day').innerText = '--';
+                title.innerText = 'No upcoming event scheduled yet';
+                summary.innerText = 'Once an admin creates an event, it will appear here at the top of the lobby.';
+                meta.innerHTML = '<div><strong>Status:</strong> Waiting for the next event</div>';
+                rulesBtn.disabled = true;
+                rulesBtn.innerText = 'Read Rules';
+                rulesBtn.onclick = null;
+                return;
+            }
+
+            const eventDate = parseEventDate(ev);
+            const month = eventDate ? eventDate.toLocaleString('default', { month: 'short' }) : '--';
+            const day = eventDate ? eventDate.getDate() : '--';
+            const label = getEventLabel(ev);
+            const ruleText = getRuleText(ev);
+
+            shell.querySelector('.month').innerText = eventDate ? eventDate.toLocaleString('default', { weekday: 'long' }) : 'Upcoming';
+            shell.querySelector('.day').innerText = day;
+            shell.querySelector('.mono').innerText = eventDate ? `${month} · ${ev.time || '--'}` : 'Next up in myHQ';
+            title.innerText = ev.title || 'Untitled Event';
+            summary.innerText = ev.type === 'external'
+                ? 'External event with platform links, rules, and category details.'
+                : 'Arcade event tied to one of the myHQ game formats.';
+
+            const platformList = Array.isArray(ev.platforms) && ev.platforms.length
+                ? ev.platforms.map((p) => `${p.name}: ${p.link}`).join(' | ')
+                : 'Platforms: --';
+
+            meta.innerHTML = `
+                <div><strong>Type:</strong> ${ev.type === 'external' ? 'External Event' : 'Base Game'}</div>
+                <div><strong>Format:</strong> ${label}</div>
+                <div><strong>Time:</strong> ${ev.time || '--'}</div>
+                <div><strong>Platforms:</strong> ${platformList}</div>
+            `;
+
+            rulesBtn.disabled = false;
+            rulesBtn.innerText = 'Read Rules';
+            rulesBtn.onclick = () => alert(`Rulebook: ${safeAlertText(ruleText)}`);
+        }
+
+        async function loadFeaturedEvent() {
+            try {
+                const snap = await getDocs(query(collection(db, 'events'), orderBy('date', 'asc')));
+                const events = [];
+                snap.forEach((item) => events.push({ id: item.id, ...item.data() }));
+
+                const now = new Date();
+                const sorted = events
+                    .map((ev) => ({ ...ev, parsedDate: parseEventDate(ev) }))
+                    .sort((a, b) => {
+                        const aTime = a.parsedDate ? a.parsedDate.getTime() : 0;
+                        const bTime = b.parsedDate ? b.parsedDate.getTime() : 0;
+                        return aTime - bTime;
+                    });
+
+                const upcoming = sorted.find((ev) => ev.parsedDate && ev.parsedDate.getTime() >= now.getTime()) || sorted[0] || null;
+                renderFeaturedEvent(upcoming);
+            } catch (err) {
+                renderFeaturedEvent(null);
+            }
+        }
+
+        function renderMasterGames() {
+            const grid = document.getElementById('masterGamesGrid');
+            grid.innerHTML = GAMES.map((game, index) => {
+                const tags = ['Classic', 'Brainy', 'Fast', 'Group', 'Word'];
+                const blurbs = {
+                    bingo: 'A quick-hit crowd favorite built for event energy.',
+                    'word-trial': 'Word-focused challenge with competitive pacing.',
+                    'clue-cascade': 'A puzzle-forward game with layered deduction.',
+                    feud: 'Team-friendly showdown with big social energy.',
+                    anagram: 'Fast word remixing for sharp thinkers.'
+                };
+
+                return `
+                    <div class="card master-card">
+                        <span class="tag">${tags[index] || 'Signature'}</span>
+                        <h3 class="mb-2">${game.name}</h3>
+                        <p>${blurbs[game.id] || 'A signature master game for the lobby.'}</p>
+                        <a href="${game.url}" class="btn btn-primary" target="_blank">Play Now</a>
+                    </div>`;
+            }).join('');
+        }
+
+        const storedEmail = localStorage.getItem('myhq_arcade_email');
+        if(!storedEmail) {
+            document.getElementById('regModal').style.display = 'flex';
+        } else {
+            document.getElementById('playerName').innerText = localStorage.getItem('myhq_arcade_name');
+        }
+
+        document.getElementById('regForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = "Entering...";
+            btn.disabled = true;
+
+            const user = { name: document.getElementById('rName').value, email: document.getElementById('rEmail').value, city: document.getElementById('rCity').value, dept: document.getElementById('rDept').value, joined: new Date().toISOString() };
+            try {
+                const userDocRef = doc(db, "players", user.email);
+                await setDoc(userDocRef, user, { merge: true });
+                localStorage.setItem('myhq_arcade_email', user.email);
+                localStorage.setItem('myhq_arcade_name', user.name);
+                
+                document.getElementById('regModal').style.display = 'none';
+                document.getElementById('playerName').innerText = user.name;
+                playSuccessSound();
+            } catch (err) { 
+                alert("Registration failed. Please try again."); 
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        loadFeaturedEvent();
+        renderMasterGames();
+    </script>
+</body>
+</html>

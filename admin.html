@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arcade Admin Console</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-box { background: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--card-shadow); border-top: 4px solid var(--primary); }
+        .dynamic-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .dynamic-row input { flex: 1; margin: 0; }
+        input[type="file"] { padding: 8px; background: #f9f9f9; cursor: pointer; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <!-- SECURITY GATE -->
+    <script>
+        const pass = prompt("Enter Admin Passcode:");
+        if (pass !== "myHQ2026") window.location.href = "index.html";
+    </script>
+
+    <div id="navbar-container"></div>
+    <div class="container">
+        <h1 style="margin-bottom: 30px;">Event Control Center</h1>
+        
+        <!-- STEP 1: SCHEDULE EVENT -->
+        <div class="admin-box">
+            <h3>1. Schedule New Event</h3>
+            <form id="eForm">
+                <!-- Event Type Selection -->
+                <div class="form-group">
+                    <label>Event Type</label>
+                    <div style="display: flex; gap: 20px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="radio" name="eventType" value="base-game" checked onchange="toggleEventFields()"> Base Game
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="radio" name="eventType" value="external" onchange="toggleEventFields()"> External Event (Quiz, etc.)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Base Game Fields -->
+                <div id="baseGameFields">
+                    <div class="form-group">
+                        <label>Select Game</label>
+                        <select id="egame">
+                            <option value="Bingo">Bingo</option>
+                            <option value="Word Trial">Word Trial</option>
+                            <option value="Clue Cascade">Clue Cascade</option>
+                            <option value="Family Feud">Family Feud</option>
+                            <option value="Anagram">Anagram</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- External Event Fields -->
+                <div id="externalEventFields" style="display: none;">
+                    <div class="form-group">
+                        <label>Event Category (e.g. Quiz, Webinar, Workshop)</label>
+                        <input type="text" id="ecategory" placeholder="e.g. Quiz">
+                    </div>
+                    <div class="form-group">
+                        <label>Platform Links</label>
+                        <div id="platformLinks">
+                            <div class="dynamic-row" style="margin-bottom: 10px;">
+                                <input type="text" class="p-platform" placeholder="Platform Name (e.g. Google Meet)" required>
+                                <input type="url" class="p-link" placeholder="Link URL" required>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline" style="margin-bottom: 15px;" onclick="addPlatformLink()">+ Add Another Platform Link</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Rulebook / Details (PDF)</label>
+                        <input type="file" id="erulesFile" accept=".pdf" title="Upload PDF Rulebook">
+                    </div>
+                </div>
+
+                <!-- Common Fields -->
+                <div class="form-group"><label>Event Title (e.g. IPL Trivia Clash)</label><input type="text" id="etitle" required></div>
+                <div class="dynamic-row">
+                    <div class="form-group" style="flex:1"><label>Date</label><input type="date" id="edate" required></div>
+                    <div class="form-group" style="flex:1"><label>Time</label><input type="time" id="etime" required></div>
+                </div>
+                <div id="textRulesField" class="form-group"><label>Rulebook / Event Details</label><textarea id="erules" rows="3" required></textarea></div>
+                <div id="basePdfField" class="form-group">
+                    <label>Rulebook / Details (PDF) - Optional</label>
+                    <input type="file" id="erulesBasePdf" accept=".pdf" title="Upload PDF Rulebook">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnEvent">Create Event</button>
+            </form>
+        </div>
+
+        <!-- STEP 2: ADD PRIZES TO EVENT -->
+        <div class="admin-box">
+            <h3>2. Add Prizes to Event</h3>
+            <form id="pForm">
+                <div class="form-group">
+                    <label>Select Target Event</label>
+                    <select id="pEventId" required><option disabled selected>Loading events...</option></select>
+                </div>
+                <div id="prizeRows">
+                    <div class="dynamic-row">
+                        <input type="text" class="p-tier" placeholder="Tier (e.g. Full House)" required>
+                        <input type="text" class="p-name" placeholder="Prize (e.g. ₹2000 Voucher)" required>
+                        <input type="file" class="p-img" accept="image/*" required title="Upload Prize Image">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline" onclick="addPrizeRow()" style="margin-bottom: 15px;">+ Add Another Prize Tier</button>
+                <button type="submit" class="btn btn-primary" id="btnPrize">Upload & Save Prizes</button>
+            </form>
+        </div>
+
+        <!-- STEP 3: DECLARE WINNERS -->
+        <div class="admin-box">
+            <h3>3. Declare Event Winners</h3>
+            <form id="wForm">
+                <div class="form-group">
+                    <label>Select Completed Event</label>
+                    <select id="wEventId" required><option disabled selected>Loading events...</option></select>
+                </div>
+                <div id="winnerRows">
+                    <div class="dynamic-row">
+                        <input type="text" class="w-name" placeholder="Winner's Name" required>
+                        <input type="text" class="w-tier" placeholder="Prize Won" required>
+                        <input type="file" class="w-img" accept="image/*" required title="Upload Winner Photo">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline" onclick="addWinnerRow()" style="margin-bottom: 15px;">+ Add Another Winner</button>
+                <button type="submit" class="btn btn-primary" id="btnWinner">Upload & Publish Winners</button>
+            </form>
+        </div>
+
+        <!-- STEP 4: DELETE EVENT -->
+        <div class="admin-box" style="border-top: 4px solid #dc3545;">
+            <h3 style="color: #dc3545;">4. Delete Event (Trial or Mistake)</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">⚠️ This will permanently delete the event and all associated data (prizes, winners).</p>
+            <div class="form-group">
+                <label>Select Event to Delete</label>
+                <select id="dEventId" required><option disabled selected>Loading events...</option></select>
+            </div>
+            <button type="button" class="btn" style="background: #dc3545; color: white; width: 100%;" onclick="deleteEvent()" id="btnDelete">Delete Event Permanently</button>
+        </div>
+
+        <!-- STEP 5: MINI-GAMES ADMIN -->
+        <div class="admin-box" style="border-top: 4px solid #5b6ef5;">
+            <h3>5. Mini-Games Admin</h3>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:14px;">Manage mini-game leaderboard entries, clean test data, and moderate player rankings.</p>
+
+            <div class="dynamic-row" style="margin-bottom:12px;">
+                <select id="mgGameFilter" style="max-width:240px;">
+                    <option value="all">All Games</option>
+                    <option value="sudoku">Sudoku</option>
+                    <option value="zip">Zip</option>
+                    <option value="cross">Cross</option>
+                    <option value="simon">Simon</option>
+                    <option value="tap">Tap</option>
+                    <option value="reaction">Reaction</option>
+                    <option value="pairs">Pairs</option>
+                    <option value="math">Math</option>
+                </select>
+                <button type="button" class="btn btn-outline" onclick="loadMiniGamesAdmin()">Refresh View</button>
+                <button type="button" class="btn btn-outline" onclick="clearMiniLeaderboardForGame()">Clear Selected Game</button>
+                <button type="button" class="btn" style="background:#dc3545;color:white;" onclick="clearAllMiniLeaderboards()">Clear All Leaderboards</button>
+            </div>
+
+            <div class="dynamic-row" style="margin-bottom:12px;">
+                <input type="text" id="mgPlayerName" placeholder="Player name to remove from all mini-game leaderboards">
+                <button type="button" class="btn btn-outline" onclick="removeMiniPlayerEverywhere()">Remove Player</button>
+            </div>
+
+            <div style="overflow-x:auto; border:1px solid #e3e8fb; border-radius:10px;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead style="background:#f5f7ff;">
+                        <tr>
+                            <th style="text-align:left; padding:10px;">Game</th>
+                            <th style="text-align:left; padding:10px;">Player</th>
+                            <th style="text-align:left; padding:10px;">Score</th>
+                            <th style="text-align:left; padding:10px;">Recorded</th>
+                            <th style="text-align:left; padding:10px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mgLeaderboardRows"></tbody>
+                </table>
+            </div>
+
+            <div class="dynamic-row" style="margin-top:12px;">
+                <button type="button" class="btn btn-outline" onclick="exportMiniLeaderboards()">Export Leaderboards JSON</button>
+                <button type="button" class="btn btn-outline" onclick="importMiniLeaderboards()">Import Leaderboards JSON</button>
+            </div>
+            <textarea id="mgJsonBox" rows="4" placeholder="Exported JSON appears here, or paste JSON to import" style="margin-top:10px;"></textarea>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, storage } from './js/firebase-config.js';
+        import { injectNavbar } from './js/navbar.js';
+        import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
+
+        injectNavbar();
+
+        // Toggle Event Type Fields
+        window.toggleEventFields = () => {
+            const eventType = document.querySelector('input[name="eventType"]:checked').value;
+            const baseGameFields = document.getElementById('baseGameFields');
+            const externalFields = document.getElementById('externalEventFields');
+            const textRulesField = document.getElementById('textRulesField');
+            const basePdfField = document.getElementById('basePdfField');
+            
+            if (eventType === 'base-game') {
+                baseGameFields.style.display = 'block';
+                externalFields.style.display = 'none';
+                textRulesField.style.display = 'block';
+                basePdfField.style.display = 'block';
+                document.getElementById('erules').required = true;
+                document.getElementById('ecategory').required = false;
+            } else {
+                baseGameFields.style.display = 'none';
+                externalFields.style.display = 'block';
+                textRulesField.style.display = 'none';
+                basePdfField.style.display = 'none';
+                document.getElementById('erules').required = false;
+                document.getElementById('ecategory').required = true;
+            }
+        };
+
+        // Add Platform Link Row
+        window.addPlatformLink = () => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-row';
+            div.style.marginBottom = '10px';
+            div.innerHTML = `<input type="text" class="p-platform" placeholder="Platform Name (e.g. Menti)" required><input type="url" class="p-link" placeholder="Link URL" required>`;
+            document.getElementById('platformLinks').appendChild(div);
+        };
+
+        // File Upload Helper
+        async function uploadFile(file, folder) {
+            if (!file) return null;
+            const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+            await uploadBytes(fileRef, file);
+            return await getDownloadURL(fileRef);
+        }
+
+        // Image Upload Helper
+        async function uploadImage(file, folder) {
+            if (!file) return 'https://via.placeholder.com/150';
+            const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+            await uploadBytes(fileRef, file);
+            return await getDownloadURL(fileRef);
+        }
+
+        // Load Events into Dropdowns
+        async function loadDropdowns() {
+            const q = query(collection(db, "events"), orderBy("date", "desc"));
+            const snapshot = await getDocs(q);
+            let options = '<option disabled selected>Select an Event</option>';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const eventLabel = data.type === 'external' ? `${data.category}` : `${data.game}`;
+                options += `<option value="${doc.id}">${data.title} (${eventLabel})</option>`;
+            });
+            document.getElementById('pEventId').innerHTML = options;
+            document.getElementById('wEventId').innerHTML = options;
+            document.getElementById('dEventId').innerHTML = options;
+        }
+        loadDropdowns();
+
+        // Mini-Games Leaderboard Admin (local leaderboard moderation)
+        const MINI_LB_KEY = 'myhq_mini_game_leaderboards_v1';
+        const MINI_UNITS = {
+            sudoku: 's',
+            zip: 's',
+            cross: 's',
+            simon: 'rounds',
+            tap: 's',
+            reaction: 'ms',
+            pairs: 's',
+            math: 's'
+        };
+
+        function readMiniLeaderboards() {
+            try {
+                return JSON.parse(localStorage.getItem(MINI_LB_KEY) || '{}');
+            } catch {
+                return {};
+            }
+        }
+
+        function writeMiniLeaderboards(payload) {
+            localStorage.setItem(MINI_LB_KEY, JSON.stringify(payload));
+        }
+
+        function normalizeGameOrder(gameKeys) {
+            const order = ['sudoku', 'zip', 'cross', 'simon', 'tap', 'reaction', 'pairs', 'math'];
+            return order.filter((g) => gameKeys.includes(g));
+        }
+
+        window.loadMiniGamesAdmin = () => {
+            const filter = document.getElementById('mgGameFilter').value;
+            const data = readMiniLeaderboards();
+            const tbody = document.getElementById('mgLeaderboardRows');
+            const keys = normalizeGameOrder(Object.keys(data));
+            const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
+            const rows = [];
+
+            gameKeys.forEach((game) => {
+                const entries = Array.isArray(data[game]) ? data[game] : [];
+                entries.forEach((entry, idx) => {
+                    const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
+                    const unit = MINI_UNITS[game] || 'pts';
+                    rows.push(`
+                        <tr style="border-top:1px solid #edf0fa;">
+                            <td style="padding:10px; text-transform:capitalize;">${game}</td>
+                            <td style="padding:10px;">${entry.name || 'Player'}</td>
+                            <td style="padding:10px;">${entry.score} ${unit}</td>
+                            <td style="padding:10px;">${dt}</td>
+                            <td style="padding:10px;">
+                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick="deleteMiniLeaderboardEntry('${game}', ${idx})">Remove</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            });
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.join('');
+        };
+
+        window.deleteMiniLeaderboardEntry = (game, index) => {
+            const data = readMiniLeaderboards();
+            if (!Array.isArray(data[game])) return;
+            data[game].splice(index, 1);
+            writeMiniLeaderboards(data);
+            loadMiniGamesAdmin();
+        };
+
+        window.clearMiniLeaderboardForGame = () => {
+            const game = document.getElementById('mgGameFilter').value;
+            if (game === 'all') {
+                alert('Select one specific game to clear, or use Clear All Leaderboards.');
+                return;
+            }
+            const data = readMiniLeaderboards();
+            data[game] = [];
+            writeMiniLeaderboards(data);
+            loadMiniGamesAdmin();
+        };
+
+        window.clearAllMiniLeaderboards = () => {
+            const ok = window.confirm('Clear all mini-game leaderboards? This cannot be undone.');
+            if (!ok) return;
+            writeMiniLeaderboards({});
+            loadMiniGamesAdmin();
+        };
+
+        window.removeMiniPlayerEverywhere = () => {
+            const player = (document.getElementById('mgPlayerName').value || '').trim().toLowerCase();
+            if (!player) {
+                alert('Enter a player name first.');
+                return;
+            }
+            const data = readMiniLeaderboards();
+            Object.keys(data).forEach((game) => {
+                const entries = Array.isArray(data[game]) ? data[game] : [];
+                data[game] = entries.filter((entry) => (entry.name || '').trim().toLowerCase() !== player);
+            });
+            writeMiniLeaderboards(data);
+            loadMiniGamesAdmin();
+        };
+
+        window.exportMiniLeaderboards = () => {
+            const data = readMiniLeaderboards();
+            document.getElementById('mgJsonBox').value = JSON.stringify(data, null, 2);
+        };
+
+        window.importMiniLeaderboards = () => {
+            const raw = document.getElementById('mgJsonBox').value.trim();
+            if (!raw) {
+                alert('Paste JSON data first.');
+                return;
+            }
+            try {
+                const parsed = JSON.parse(raw);
+                if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                    throw new Error('Invalid format');
+                }
+                writeMiniLeaderboards(parsed);
+                loadMiniGamesAdmin();
+            } catch {
+                alert('Invalid JSON.');
+            }
+        };
+
+        loadMiniGamesAdmin();
+
+        // Dynamic Rows Logic
+        window.addPrizeRow = () => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-row';
+            div.innerHTML = `<input type="text" class="p-tier" placeholder="Tier" required><input type="text" class="p-name" placeholder="Prize Name" required><input type="file" class="p-img" accept="image/*" required>`;
+            document.getElementById('prizeRows').appendChild(div);
+        };
+
+        window.addWinnerRow = () => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-row';
+            div.innerHTML = `<input type="text" class="w-name" placeholder="Winner's Name" required><input type="text" class="w-tier" placeholder="Prize Won" required><input type="file" class="w-img" accept="image/*" required>`;
+            document.getElementById('winnerRows').appendChild(div);
+        };
+
+        // Delete Event Function
+        window.deleteEvent = async () => {
+            const eventId = document.getElementById('dEventId').value;
+            if (!eventId) {
+                alert("Please select an event to delete.");
+                return;
+            }
+
+            const confirm = window.confirm("Are you sure you want to permanently delete this event and all associated prizes and winners? This cannot be undone.");
+            if (!confirm) return;
+
+            const btn = document.getElementById('btnDelete');
+            btn.innerText = "Deleting...";
+            btn.disabled = true;
+
+            try {
+                // Delete the event
+                await deleteDoc(doc(db, "events", eventId));
+
+                // Delete all prizes associated with this event
+                const prizeSnapshot = await getDocs(query(collection(db, "prizes"), where("eventId", "==", eventId)));
+                for (const prizeDoc of prizeSnapshot.docs) {
+                    await deleteDoc(prizeDoc.ref);
+                }
+
+                // Delete all winners associated with this event
+                const winnerSnapshot = await getDocs(query(collection(db, "winners"), where("eventId", "==", eventId)));
+                for (const winnerDoc of winnerSnapshot.docs) {
+                    await deleteDoc(winnerDoc.ref);
+                }
+
+                alert("Event and all associated data deleted successfully!");
+                location.reload();
+            } catch (error) {
+                alert("Error deleting event: " + error.message);
+                btn.innerText = "Delete Event Permanently";
+                btn.disabled = false;
+            }
+        };
+
+        // Form Submissions
+        document.getElementById('eForm').onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById('btnEvent').innerText = "Creating...";
+            document.getElementById('btnEvent').disabled = true;
+            
+            const eventType = document.querySelector('input[name="eventType"]:checked').value;
+            const title = document.getElementById('etitle').value;
+            const date = document.getElementById('edate').value;
+            const time = document.getElementById('etime').value;
+            
+            try {
+                if (eventType === 'base-game') {
+                    // Base Game Event
+                    const pdfFile = document.getElementById('erulesBasePdf').files[0];
+                    
+                    // Upload PDF if provided
+                    let rulesUrl = null;
+                    if (pdfFile) {
+                        rulesUrl = await uploadFile(pdfFile, 'ruleBooks');
+                    }
+                    
+                    await addDoc(collection(db, "events"), {
+                        type: 'base-game',
+                        game: document.getElementById('egame').value,
+                        title: title,
+                        date: date,
+                        time: time,
+                        rules: document.getElementById('erules').value,
+                        rulesUrl: rulesUrl,
+                        createdAt: new Date().toISOString()
+                    });
+                } else {
+                    // External Event
+                    const category = document.getElementById('ecategory').value;
+                    const platformNames = document.querySelectorAll('.p-platform');
+                    const platformLinks = document.querySelectorAll('.p-link');
+                    const rulesFile = document.getElementById('erulesFile').files[0];
+                    
+                    // Collect platform links
+                    const platforms = [];
+                    for (let i = 0; i < platformNames.length; i++) {
+                        if (platformNames[i].value && platformLinks[i].value) {
+                            platforms.push({
+                                name: platformNames[i].value,
+                                link: platformLinks[i].value
+                            });
+                        }
+                    }
+                    
+                    // Upload rulebook PDF if provided
+                    let rulesUrl = null;
+                    if (rulesFile) {
+                        rulesUrl = await uploadFile(rulesFile, 'ruleBooks');
+                    }
+                    
+                    await addDoc(collection(db, "events"), {
+                        type: 'external',
+                        category: category,
+                        title: title,
+                        date: date,
+                        time: time,
+                        platforms: platforms,
+                        rulesUrl: rulesUrl,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                alert("Event Scheduled!"); 
+                location.reload();
+            } catch (error) {
+                alert("Error creating event: " + error.message);
+                document.getElementById('btnEvent').innerText = "Create Event";
+                document.getElementById('btnEvent').disabled = false;
+            }
+        };
+
+        document.getElementById('pForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnPrize');
+            btn.innerText = "Uploading Images & Saving..."; btn.disabled = true;
+
+            const eventId = document.getElementById('pEventId').value;
+            const eventName = document.getElementById('pEventId').options[document.getElementById('pEventId').selectedIndex].text;
+            
+            const tiers = document.querySelectorAll('.p-tier');
+            const names = document.querySelectorAll('.p-name');
+            const files = document.querySelectorAll('.p-img');
+            
+            for(let i=0; i<tiers.length; i++){
+                const imgUrl = await uploadImage(files[i].files[0], 'prizes');
+                await addDoc(collection(db, "prizes"), { eventId, eventName, tier: tiers[i].value, name: names[i].value, img: imgUrl });
+            }
+            alert("Prizes Uploaded & Linked!"); location.reload();
+        };
+
+        document.getElementById('wForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnWinner');
+            btn.innerText = "Uploading Photos & Saving..."; btn.disabled = true;
+
+            const eventId = document.getElementById('wEventId').value;
+            const eventName = document.getElementById('wEventId').options[document.getElementById('wEventId').selectedIndex].text;
+            
+            const names = document.querySelectorAll('.w-name');
+            const tiers = document.querySelectorAll('.w-tier');
+            const files = document.querySelectorAll('.w-img');
+            
+            for(let i=0; i<names.length; i++){
+                const imgUrl = await uploadImage(files[i].files[0], 'winners');
+                await addDoc(collection(db, "winners"), { eventId, eventName, name: names[i].value, tier: tiers[i].value, img: imgUrl, date: new Date().toLocaleDateString() });
+            }
+            alert("Winners Uploaded & Published!"); location.reload();
+        };
+    </script>
+</body>
+</html>
