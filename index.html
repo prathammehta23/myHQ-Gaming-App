@@ -537,6 +537,19 @@
         </div>
     </div>
 
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 700px; text-align: left; padding: 0; display: flex; flex-direction: column; max-height: 85vh;">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fffcf9; border-radius: 24px 24px 0 0;">
+                <h2 style="margin: 0; color: #ef4444; font-size: 1.5rem;">Event Rulebook</h2>
+                <button onclick="document.getElementById('rulesModal').style.display='none'" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div id="rulesModalBody" style="padding: 30px; overflow-y: auto; white-space: pre-wrap; font-size: 1rem; line-height: 1.7; color: var(--text-main);">
+                Loading rules...
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { GAMES, db } from './js/firebase-config.js';
         import { injectNavbar } from './js/navbar.js';
@@ -562,15 +575,15 @@
             return ev.game || 'Base Game';
         }
 
-        function getRuleText(ev) {
-            if (!ev) return 'No rules provided.';
-            if (ev.rules) return ev.rules;
-            if (ev.rulesUrl) return 'Rulebook available via uploaded PDF.';
-            return 'No rules provided.';
-        }
+
 
         function safeAlertText(text) {
             return String(text || '').replace(/'/g, "\\'");
+        }
+
+        function showRulesModal(rulesText) {
+            document.getElementById('rulesModalBody').innerText = rulesText;
+            document.getElementById('rulesModal').style.display = 'flex';
         }
 
         function renderFeaturedEvent(ev) {
@@ -600,7 +613,7 @@
             const month = eventDate ? eventDate.toLocaleString('default', { month: 'short' }) : '--';
             const day = eventDate ? eventDate.getDate() : '--';
             const label = getEventLabel(ev);
-            const ruleText = getRuleText(ev);
+            const ruleText = ev.rules ? ev.rules : 'No rules provided for this event.';
 
             monthEl.innerText = eventDate ? eventDate.toLocaleString('default', { weekday: 'long' }) : 'Upcoming';
             dayEl.innerText = day;
@@ -634,16 +647,8 @@
             `;
 
             rulesBtn.disabled = false;
-            rulesBtn.innerText = ev.rulesUrl ? 'Read Rulebook (PDF)' : 'Read Rules';
-            rulesBtn.onclick = () => {
-                if (ev.rulesUrl) {
-                    window.open(ev.rulesUrl, '_blank');
-                } else if (ev.rules && (ev.rules.startsWith('http://') || ev.rules.startsWith('https://'))) {
-                    window.open(ev.rules, '_blank');
-                } else {
-                    alert(`Rulebook: ${safeAlertText(ruleText)}`);
-                }
-            };
+            rulesBtn.innerText = 'Read Rules';
+            rulesBtn.onclick = () => showRulesModal(ruleText);
         }
 
         async function loadFeaturedEvent() {

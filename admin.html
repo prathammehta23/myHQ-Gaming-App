@@ -74,10 +74,6 @@
                         </div>
                         <button type="button" class="btn btn-outline" style="margin-bottom: 15px;" onclick="addPlatformLink()">+ Add Another Platform Link</button>
                     </div>
-                    <div class="form-group">
-                        <label>Rulebook / Details (PDF)</label>
-                        <input type="file" id="erulesFile" accept=".pdf" title="Upload PDF Rulebook">
-                    </div>
                 </div>
 
                 <!-- Common Fields -->
@@ -86,11 +82,7 @@
                     <div class="form-group" style="flex:1"><label>Date</label><input type="date" id="edate" required></div>
                     <div class="form-group" style="flex:1"><label>Time</label><input type="time" id="etime" required></div>
                 </div>
-                <div id="textRulesField" class="form-group"><label>Rulebook / Event Details</label><textarea id="erules" rows="3" required></textarea></div>
-                <div id="basePdfField" class="form-group">
-                    <label>Rulebook / Details (PDF) - Optional</label>
-                    <input type="file" id="erulesBasePdf" accept=".pdf" title="Upload PDF Rulebook">
-                </div>
+                <div id="textRulesField" class="form-group"><label>Rulebook / Event Details (Copy Paste)</label><textarea id="erules" rows="6"></textarea></div>
                 <button type="submit" class="btn btn-primary" id="btnEvent">Create Event</button>
             </form>
         </div>
@@ -209,16 +201,13 @@
             const eventType = document.querySelector('input[name="eventType"]:checked').value;
             const baseGameFields = document.getElementById('baseGameFields');
             const externalFields = document.getElementById('externalEventFields');
-            const textRulesField = document.getElementById('textRulesField');
-            const basePdfField = document.getElementById('basePdfField');
             const platformInputs = document.querySelectorAll('.p-platform, .p-link');
+            const textRulesField = document.getElementById('textRulesField');
             
             if (eventType === 'base-game') {
                 baseGameFields.style.display = 'block';
                 externalFields.style.display = 'none';
                 textRulesField.style.display = 'block';
-                basePdfField.style.display = 'block';
-                document.getElementById('erules').required = true;
                 document.getElementById('ecategory').required = false;
                 platformInputs.forEach((input) => {
                     input.required = false;
@@ -227,8 +216,6 @@
                 baseGameFields.style.display = 'none';
                 externalFields.style.display = 'block';
                 textRulesField.style.display = 'none';
-                basePdfField.style.display = 'none';
-                document.getElementById('erules').required = false;
                 document.getElementById('ecategory').required = true;
                 platformInputs.forEach((input) => {
                     input.required = true;
@@ -250,7 +237,8 @@
         // File Upload Helper
         async function uploadFile(file, folder) {
             if (!file) return null;
-            const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            const fileRef = ref(storage, `${folder}/${Date.now()}_${sanitizedName}`);
             await uploadBytes(fileRef, file);
             return await getDownloadURL(fileRef);
         }
@@ -258,7 +246,8 @@
         // Image Upload Helper
         async function uploadImage(file, folder) {
             if (!file) return 'https://via.placeholder.com/150';
-            const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            const fileRef = ref(storage, `${folder}/${Date.now()}_${sanitizedName}`);
             await uploadBytes(fileRef, file);
             return await getDownloadURL(fileRef);
         }
@@ -480,30 +469,34 @@
             try {
                 if (eventType === 'base-game') {
                     // Base Game Event
-                    const pdfFile = document.getElementById('erulesBasePdf').files[0];
+                    const gameName = document.getElementById('egame').value;
                     
-                    // Upload PDF if provided
-                    let rulesUrl = null;
-                    if (pdfFile) {
-                        rulesUrl = await uploadFile(pdfFile, 'ruleBooks');
-                    }
-                    
-                    await addDoc(collection(db, "events"), {
+                    const createdDoc = await addDoc(collection(db, "events"), {
                         type: 'base-game',
-                        game: document.getElementById('egame').value,
+                        game: gameName,
                         title: title,
                         date: date,
                         time: time,
                         rules: document.getElementById('erules').value,
-                        rulesUrl: rulesUrl,
                         createdAt: new Date().toISOString()
+                    });
+
+                    const label = `${title} (${gameName})`;
+                    document.querySelectorAll('#pEventId, #wEventId, #dEventId').forEach((select) => {
+                        const option = document.createElement('option');
+                        option.value = createdDoc.id;
+                        option.textContent = label;
+                        if (select.options.length && select.options[0].disabled) {
+                            select.insertBefore(option, select.options[1] || null);
+                        } else {
+                            select.appendChild(option);
+                        }
                     });
                 } else {
                     // External Event
                     const category = document.getElementById('ecategory').value;
                     const platformNames = document.querySelectorAll('.p-platform');
                     const platformLinks = document.querySelectorAll('.p-link');
-                    const rulesFile = document.getElementById('erulesFile').files[0];
                     
                     // Collect platform links
                     const platforms = [];
@@ -516,25 +509,34 @@
                         }
                     }
                     
-                    // Upload rulebook PDF if provided
-                    let rulesUrl = null;
-                    if (rulesFile) {
-                        rulesUrl = await uploadFile(rulesFile, 'ruleBooks');
-                    }
-                    
-                    await addDoc(collection(db, "events"), {
+                    const createdDoc = await addDoc(collection(db, "events"), {
                         type: 'external',
                         category: category,
                         title: title,
                         date: date,
                         time: time,
                         platforms: platforms,
-                        rulesUrl: rulesUrl,
+                        rules: document.getElementById('erules').value,
                         createdAt: new Date().toISOString()
+                    });
+
+                    const label = `${title} (${category || 'External'})`;
+                    document.querySelectorAll('#pEventId, #wEventId, #dEventId').forEach((select) => {
+                        const option = document.createElement('option');
+                        option.value = createdDoc.id;
+                        option.textContent = label;
+                        if (select.options.length && select.options[0].disabled) {
+                            select.insertBefore(option, select.options[1] || null);
+                        } else {
+                            select.appendChild(option);
+                        }
                     });
                 }
                 alert("Event Scheduled!"); 
-                location.reload();
+                e.target.reset();
+                toggleEventFields();
+                document.getElementById('btnEvent').innerText = "Create Event";
+                document.getElementById('btnEvent').disabled = false;
             } catch (error) {
                 alert("Error creating event: " + error.message);
                 document.getElementById('btnEvent').innerText = "Create Event";

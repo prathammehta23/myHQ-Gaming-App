@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "myhq-gaming-platform.firebaseapp.com",
   databaseURL: "https://myhq-gaming-platform-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "myhq-gaming-platform",
-  storageBucket: "myhq-gaming-platform.firebasestorage.app",
+  storageBucket: "myhq-gaming-platform.appspot.com",
   messagingSenderId: "589206602464",
   appId: "1:589206602464:web:7653c81be59f6fd7eb8685",
   measurementId: "G-QKPNBYSJ1H"
