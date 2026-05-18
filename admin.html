@@ -302,11 +302,12 @@
     </div>
 
     <script type="module">
-        import { db, storage, auth } from './js/firebase-config.js';
+        import { db, storage, auth, rtdb } from './js/firebase-config.js';
         import { injectNavbar } from './js/navbar.js';
         import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
         import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+        import { ref as rtdbRef, get, set } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
         injectNavbar();
 
@@ -525,10 +526,119 @@
             return order.filter((g) => gameKeys.includes(g));
         }
 
-        window.loadMiniGamesAdmin = () => {
+        window.loadMiniGamesAdmin = async () => {
             const filter = document.getElementById('mgGameFilter').value;
-            const data = readMiniLeaderboards();
             const tbody = document.getElementById('mgLeaderboardRows');
+            tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">Loading leaderboards...</td></tr>';
+            
+            try {
+                // Try to load from Firestore first (dual storage)
+                const scoresSnap = await getDocs(query(collection(db, 'mini_game_scores')));
+                
+                if (!scoresSnap.empty) {
+                    const firestoreData = {};
+                    scoresSnap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const game = data.game;
+                        if (!firestoreData[game]) firestoreData[game] = [];
+                        firestoreData[game].push({
+                            id: docSnap.id,
+                            name: data.name || 'Player',
+                            score: data.score || 0,
+                            ts: data.timestamp || Date.now()
+                        });
+                    });
+                    
+                    // Sort entries by score and render
+                    const rows = [];
+                    const allGames = normalizeGameOrder(Object.keys(firestoreData || {}));
+                    const gameKeys = filter === 'all' ? allGames : allGames.filter((k) => k === filter);
+                    
+                    gameKeys.forEach((game) => {
+                        const entries = firestoreData[game] || [];
+                        entries.sort((a, b) => {
+                            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
+                            return rules && rules.descending ? b.score - a.score : a.score - b.score;
+                        });
+                        
+                        entries.forEach((entry, idx) => {
+                            const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
+                            const unit = MINI_UNITS[game] || 'pts';
+                            rows.push(`
+                                <tr style="border-top:1px solid #edf0fa;">
+                                    <td style="padding:10px; text-transform:capitalize;">${game}</td>
+                                    <td style="padding:10px;">${entry.name}</td>
+                                    <td style="padding:10px;">${entry.score} ${unit}</td>
+                                    <td style="padding:10px;">${dt}</td>
+                                    <td style="padding:10px;">
+                                        <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick="deleteMiniLeaderboardEntry('${game}', '${entry.id}', 'firestore')">Remove</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    });
+                    
+                    if (rows.length > 0) {
+                        tbody.innerHTML = rows.join('');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('Firestore read failed, trying RTDB:', err);
+            }
+            
+            try {
+                // Fallback to Firebase RTDB
+                const fbRefPath = rtdbRef(rtdb, 'leaderboards');
+                const snapshot = await get(fbRefPath);
+                
+                if (snapshot.exists()) {
+                    const fbData = snapshot.val();
+                    const rows = [];
+                    const allGames = normalizeGameOrder(Object.keys(fbData || {}));
+                    const gameKeys = filter === 'all' ? allGames : allGames.filter((k) => k === filter);
+                    
+                    gameKeys.forEach((game) => {
+                        const scores = fbData[game]?.scores || {};
+                        const entries = Object.entries(scores).map(([key, val]) => ({
+                            id: key,
+                            name: val.name || 'Player',
+                            score: val.score || 0,
+                            ts: val.timestamp || Date.now()
+                        })).sort((a, b) => {
+                            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
+                            return rules && rules.descending ? b.score - a.score : a.score - b.score;
+                        });
+                        
+                        entries.forEach((entry, idx) => {
+                            const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
+                            const unit = MINI_UNITS[game] || 'pts';
+                            rows.push(`
+                                <tr style="border-top:1px solid #edf0fa;">
+                                    <td style="padding:10px; text-transform:capitalize;">${game}</td>
+                                    <td style="padding:10px;">${entry.name}</td>
+                                    <td style="padding:10px;">${entry.score} ${unit}</td>
+                                    <td style="padding:10px;">${dt}</td>
+                                    <td style="padding:10px;">
+                                        <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick="deleteMiniLeaderboardEntry('${game}', '${entry.id}', 'rtdb')">Remove</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    });
+                    
+                    if (rows.length > 0) {
+                        tbody.innerHTML = rows.join('');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('RTDB read failed, falling back to localStorage:', err);
+            }
+            
+            // Fallback to localStorage
+            const data = readMiniLeaderboards();
+            const tbody2 = document.getElementById('mgLeaderboardRows');
             const keys = normalizeGameOrder(Object.keys(data));
             const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
             const rows = [];
@@ -545,7 +655,7 @@
                             <td style="padding:10px;">${entry.score} ${unit}</td>
                             <td style="padding:10px;">${dt}</td>
                             <td style="padding:10px;">
-                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick="deleteMiniLeaderboardEntry('${game}', ${idx})">Remove</button>
+                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick="deleteMiniLeaderboardEntry('${game}', ${idx}, 'localStorage')">Remove</button>
                             </td>
                         </tr>
                     `);
@@ -553,46 +663,159 @@
             });
 
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
+                tbody2.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = rows.join('');
+            tbody2.innerHTML = rows.join('');
         };
 
-        window.deleteMiniLeaderboardEntry = (game, index) => {
-            const data = readMiniLeaderboards();
-            if (!Array.isArray(data[game])) return;
-            data[game].splice(index, 1);
-            writeMiniLeaderboards(data);
+        window.deleteMiniLeaderboardEntry = async (game, indexOrId, storageType) => {
+            if (storageType === 'firestore') {
+                // Delete from Firestore
+                try {
+                    await deleteDoc(doc(db, 'mini_game_scores', indexOrId));
+                } catch (err) {
+                    console.error('Error deleting from Firestore:', err);
+                    alert('Error deleting entry from Firestore.');
+                    return;
+                }
+            } else if (storageType === 'rtdb') {
+                // Delete from RTDB
+                try {
+                    const fbRefPath = rtdbRef(rtdb, `leaderboards/${game}/scores/${indexOrId}`);
+                    await set(fbRefPath, null);
+                } catch (err) {
+                    console.error('Error deleting from RTDB:', err);
+                    alert('Error deleting entry from RTDB.');
+                    return;
+                }
+            } else if (storageType === 'localStorage') {
+                // Delete from localStorage
+                const data = readMiniLeaderboards();
+                if (!Array.isArray(data[game])) return;
+                data[game].splice(indexOrId, 1);
+                writeMiniLeaderboards(data);
+            }
             loadMiniGamesAdmin();
         };
 
-        window.clearMiniLeaderboardForGame = () => {
+        window.clearMiniLeaderboardForGame = async () => {
             const game = document.getElementById('mgGameFilter').value;
             if (game === 'all') {
                 alert('Select one specific game to clear, or use Clear All Leaderboards.');
                 return;
             }
+            const ok = window.confirm(`Clear all leaderboard entries for ${game}?`);
+            if (!ok) return;
+            
+            try {
+                // Clear from Firestore
+                const scoresSnap = await getDocs(query(collection(db, 'mini_game_scores'), where('game', '==', game)));
+                scoresSnap.forEach(async (docSnap) => {
+                    try {
+                        await deleteDoc(doc(db, 'mini_game_scores', docSnap.id));
+                    } catch (err) {
+                        console.warn(`Error deleting Firestore doc:`, err);
+                    }
+                });
+            } catch (err) {
+                console.warn('Firestore clear failed:', err);
+            }
+            
+            try {
+                // Clear from RTDB
+                const fbRefPath = rtdbRef(rtdb, `leaderboards/${game}/scores`);
+                await set(fbRefPath, null);
+            } catch (err) {
+                console.warn('RTDB clear failed:', err);
+            }
+            
+            // Clear from localStorage
             const data = readMiniLeaderboards();
             data[game] = [];
             writeMiniLeaderboards(data);
             loadMiniGamesAdmin();
         };
 
-        window.clearAllMiniLeaderboards = () => {
+        window.clearAllMiniLeaderboards = async () => {
             const ok = window.confirm('Clear all mini-game leaderboards? This cannot be undone.');
             if (!ok) return;
+            
+            try {
+                // Clear all from Firestore
+                const scoresSnap = await getDocs(collection(db, 'mini_game_scores'));
+                scoresSnap.forEach(async (docSnap) => {
+                    try {
+                        await deleteDoc(doc(db, 'mini_game_scores', docSnap.id));
+                    } catch (err) {
+                        console.warn(`Error deleting Firestore doc:`, err);
+                    }
+                });
+            } catch (err) {
+                console.warn('Firestore clear all failed:', err);
+            }
+            
+            try {
+                // Clear from RTDB
+                const fbRefPath = rtdbRef(rtdb, 'leaderboards');
+                await set(fbRefPath, null);
+            } catch (err) {
+                console.warn('RTDB clear all failed:', err);
+            }
+            
+            // Clear from localStorage
             writeMiniLeaderboards({});
             loadMiniGamesAdmin();
         };
 
-        window.removeMiniPlayerEverywhere = () => {
+        window.removeMiniPlayerEverywhere = async () => {
             const player = (document.getElementById('mgPlayerName').value || '').trim().toLowerCase();
             if (!player) {
                 alert('Enter a player name first.');
                 return;
             }
+            const ok = window.confirm(`Remove all entries for "${player}"?`);
+            if (!ok) return;
+            
+            try {
+                // Remove from Firestore
+                const scoresSnap = await getDocs(query(collection(db, 'mini_game_scores'), where('name', '==', player.trim())));
+                scoresSnap.forEach(async (docSnap) => {
+                    try {
+                        await deleteDoc(doc(db, 'mini_game_scores', docSnap.id));
+                    } catch (err) {
+                        console.warn(`Error deleting Firestore doc:`, err);
+                    }
+                });
+            } catch (err) {
+                console.warn('Firestore player removal partially failed:', err);
+            }
+            
+            try {
+                // Try to remove from RTDB
+                const fbRefPath = rtdbRef(rtdb, 'leaderboards');
+                const snapshot = await get(fbRefPath);
+                if (snapshot.exists()) {
+                    const fbData = snapshot.val();
+                    Object.keys(fbData || {}).forEach(async (game) => {
+                        const scores = fbData[game]?.scores || {};
+                        Object.keys(scores).forEach(async (scoreKey) => {
+                            if ((scores[scoreKey].name || '').trim().toLowerCase() === player) {
+                                try {
+                                    await set(rtdbRef(rtdb, `leaderboards/${game}/scores/${scoreKey}`), null);
+                                } catch (err) {
+                                    console.warn(`Error deleting RTDB ${game}/${scoreKey}:`, err);
+                                }
+                            }
+                        });
+                    });
+                }
+            } catch (err) {
+                console.warn('RTDB player removal partially failed:', err);
+            }
+            
+            // Also remove from localStorage
             const data = readMiniLeaderboards();
             Object.keys(data).forEach((game) => {
                 const entries = Array.isArray(data[game]) ? data[game] : [];

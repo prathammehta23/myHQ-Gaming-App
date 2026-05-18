@@ -595,8 +595,9 @@
 
     <script type="module">
         import { injectNavbar } from './js/navbar.js';
-        import { rtdb } from './js/firebase-config.js';
+        import { rtdb, db } from './js/firebase-config.js';
         import { ref, push, query, limitToLast, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+        import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         
         injectNavbar();
 
@@ -754,18 +755,33 @@
             
             const playerName = getPlayerName();
             const playerEmail = localStorage.getItem('myhq_arcade_email') || 'unknown@myhq.co';
+            const timestamp = Date.now();
             
-            // Save to Firebase
+            // Save to Firebase RTDB
             try {
                 const fbRef = ref(rtdb, `leaderboards/${game}/scores`);
                 await push(fbRef, {
                     name: playerName,
                     email: playerEmail,
                     score: scoreValue,
-                    timestamp: Date.now(),
+                    timestamp: timestamp,
                 });
             } catch (err) {
-                console.warn('Firebase write failed, using localStorage only:', err);
+                console.warn('RTDB write failed:', err);
+            }
+            
+            // Save to Firestore as well (dual storage)
+            try {
+                await addDoc(collection(db, 'mini_game_scores'), {
+                    game: game,
+                    name: playerName,
+                    email: playerEmail,
+                    score: scoreValue,
+                    timestamp: timestamp,
+                    recordedAt: new Date().toISOString()
+                });
+            } catch (err) {
+                console.warn('Firestore write failed:', err);
             }
             
             // Also save to localStorage for offline access
@@ -775,7 +791,7 @@
             list.push({
                 name: playerName,
                 score: scoreValue,
-                ts: Date.now()
+                ts: timestamp
             });
             list.sort((a, b) => {
                 if (rules.descending) return b.score - a.score;
