@@ -4,12 +4,38 @@
     <meta charset="UTF-8">
     <title>Hall of Fame</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;
+        }
+        .modal-card {
+            background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 900px;
+            max-height: 85vh; overflow-y: auto; position: relative; box-shadow: var(--card-shadow);
+        }
+        .close-btn {
+            position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #64748b; font-weight: bold; line-height: 1;
+        }
+        .close-btn:hover { color: #000; }
+        .event-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent); }
+        .event-card:hover { transform: translateY(-4px); box-shadow: var(--card-shadow); }
+    </style>
 </head>
 <body>
     <div id="navbar-container"></div>
     <div class="container">
         <h1 class="text-center mb-4">Wall of Champions</h1>
-        <div class="game-grid" id="winnerGrid"></div>
+        <p class="text-center text-muted mb-4">Select an event to view its illustrious winners.</p>
+        <div class="game-grid" id="eventGrid"></div>
+    </div>
+
+    <!-- Modal for showing winners -->
+    <div class="modal-overlay" id="winnerModal">
+        <div class="modal-card">
+            <span class="close-btn" onclick="closeModal()">×</span>
+            <h2 id="modalEventTitle" class="mb-4 text-center">Event Champions</h2>
+            <div class="game-grid" id="modalWinnerGrid"></div>
+        </div>
     </div>
 
     <script type="module">
@@ -19,27 +45,81 @@
 
         injectNavbar();
 
-        async function loadWinners() {
-            const grid = document.getElementById('winnerGrid');
+        let eventsMap = {}; // Will hold eventName -> array of winners
+
+        async function loadEventsWithWinners() {
+            const grid = document.getElementById('eventGrid');
             grid.innerHTML = '<p class="text-center text-muted" style="grid-column: 1/-1;">Loading champions...</p>';
 
             const snap = await getDocs(collection(db, "winners"));
-            let htmlContent = "";
+            eventsMap = {};
+            
             snap.forEach((doc) => {
                 const w = doc.data();
+                const eventName = w.eventName || 'Unnamed Event';
+                if (!eventsMap[eventName]) eventsMap[eventName] = [];
+                eventsMap[eventName].push(w);
+            });
+
+            const eventNames = Object.keys(eventsMap);
+            if (eventNames.length === 0) {
+                grid.innerHTML = '<p class="text-center text-muted" style="grid-column: 1/-1;">No champions found.</p>';
+                return;
+            }
+
+            let htmlContent = "";
+            eventNames.forEach((evtName) => {
+                const winnersCount = eventsMap[evtName].length;
                 htmlContent += `
-                    <div class="card text-center" style="border-top: 4px solid var(--accent);">
+                    <div class="card event-card text-center" onclick="openModal('${evtName.replace(/'/g, "\\'")}')">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">👑</div>
+                        <h2 class="mb-2">${evtName}</h2>
+                        <div class="badge-accent mt-2" style="display:inline-block;">
+                            <strong>${winnersCount} Champion${winnersCount > 1 ? 's' : ''}</strong>
+                        </div>
+                        <p class="text-muted mt-3" style="font-size: 0.9rem;">Click to view winners →</p>
+                    </div>`;
+            });
+            grid.innerHTML = htmlContent;
+        }
+
+        window.openModal = (eventName) => {
+            const modal = document.getElementById('winnerModal');
+            const title = document.getElementById('modalEventTitle');
+            const grid = document.getElementById('modalWinnerGrid');
+            
+            title.innerText = eventName + ' - Champions';
+            
+            const winners = eventsMap[eventName] || [];
+            let htmlContent = "";
+            winners.forEach((w) => {
+                htmlContent += `
+                    <div class="card text-center" style="box-shadow:none; border:1px solid #e2e8f0; border-top: 4px solid var(--accent);">
                         <img src="${w.img}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; margin:0 auto 15px; border:4px solid var(--accent);">
-                        <div class="mono text-muted mb-2">${w.eventName}</div>
                         <h2 class="mb-1">${w.name}</h2>
                         <div class="badge-accent mt-3">
                             <strong>Won: ${w.tier}</strong>
                         </div>
                     </div>`;
             });
-            grid.innerHTML = htmlContent || '<p class="text-center text-muted" style="grid-column: 1/-1;">No champions yet.</p>';
-        }
-        loadWinners();
+            
+            grid.innerHTML = htmlContent;
+            modal.style.display = 'flex';
+        };
+
+        window.closeModal = () => {
+            document.getElementById('winnerModal').style.display = 'none';
+        };
+
+        // Close when clicking outside the modal content
+        window.onclick = function(event) {
+            const modal = document.getElementById('winnerModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        };
+
+        loadEventsWithWinners();
     </script>
 </body>
 </html>

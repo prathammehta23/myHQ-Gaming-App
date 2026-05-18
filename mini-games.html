@@ -382,7 +382,6 @@
                 </div>
                 <div id="sudokuGrid" class="sudoku-grid"></div>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="checkSudoku()">Check</button>
                     <button class="btn btn-outline" onclick="resetSudoku()">Reset</button>
                     <button class="btn btn-outline" onclick="regenerateSudoku()">Regenerate</button>
                     <button class="btn btn-outline" onclick="showSudokuSolution()">Show Solution</button>
@@ -468,7 +467,6 @@
                 </div>
                 <div class="actions">
                     <button class="btn btn-primary" onclick="startMath()">Start Race</button>
-                    <button class="btn btn-outline" onclick="submitMath()">Submit</button>
                     <button class="btn btn-outline" onclick="closeGame()">Back</button>
                 </div>
                 <div class="mini-leaderboard">
@@ -493,7 +491,6 @@
                     <div id="zipLetters" class="letters-view"></div>
                     <input id="zipInput" type="text" placeholder="Type your answer" style="max-width:520px;">
                     <div class="actions">
-                        <button class="btn btn-primary" onclick="submitZip()">Submit</button>
                         <button class="btn btn-outline" onclick="skipZip()">Skip</button>
                         <button class="btn btn-outline" onclick="showZipSolution()">Show Solution</button>
                         <button class="btn btn-outline" onclick="closeGame()">Back</button>
@@ -526,7 +523,6 @@
                 </div>
                 <p id="crossHint" style="margin-top:10px;color:#5d6679;">Hint</p>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="checkCross()">Check</button>
                     <button class="btn btn-outline" onclick="nextCross()">Next</button>
                     <button class="btn btn-outline" onclick="showCrossSolution()">Show Solution</button>
                     <button class="btn btn-outline" onclick="closeGame()">Back</button>
@@ -618,6 +614,9 @@
         function cloneGrid(grid) {
             return grid.map((row) => row.slice());
         }
+
+        let sudokuSolved = false;
+        let sudokuAutoCheckTimer = null;
 
         const stopwatchBadges = {
             sudoku: 'sudokuTimer',
@@ -977,6 +976,7 @@
 
             sudokuCurrent = cloneGrid(sudokuPuzzle);
             sudokuMoves = 0;
+            sudokuSolved = false;
             document.getElementById('sudokuMoves').innerText = 'Moves: 0';
         }
 
@@ -1046,6 +1046,7 @@
         }
 
         window.checkSudoku = () => {
+            if (sudokuSolved) return;
             if (!sudokuRulesValid(sudokuCurrent)) {
                 alert('Rule violation found. Check repeats in row, column, or 2x2 box.');
                 return;
@@ -1054,6 +1055,8 @@
                 alert('So far valid, but puzzle is not complete.');
                 return;
             }
+            sudokuSolved = true;
+            clearTimeout(sudokuAutoCheckTimer);
             stopStopwatch('sudoku');
             addLeaderboardScore('sudoku', Number((getElapsedMs('sudoku') / 1000).toFixed(1)));
             alert(`Great. Sudoku solved in ${sudokuMoves} moves.`);
@@ -1062,6 +1065,7 @@
         window.resetSudoku = () => {
             sudokuCurrent = cloneGrid(sudokuPuzzle);
             sudokuMoves = 0;
+            sudokuSolved = false;
             resetStopwatch('sudoku');
             document.getElementById('sudokuMoves').innerText = 'Moves: 0';
             renderSudoku();
@@ -1069,6 +1073,7 @@
 
         window.regenerateSudoku = () => {
             generateSudokuPuzzle();
+            sudokuSolved = false;
             resetStopwatch('sudoku');
             renderSudoku();
         };
@@ -1198,6 +1203,12 @@
         const zipInputEl = document.getElementById('zipInput');
         if (zipInputEl) {
             zipInputEl.addEventListener('input', () => startStopwatch('zip'));
+            zipInputEl.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    window.submitZip();
+                }
+            });
         }
 
         // Cross-Climb
@@ -1311,6 +1322,22 @@
             document.getElementById('crossScore').innerText = `Solved: ${crossSolved}`;
         }
 
+        let crossAutoCheckTimer = null;
+
+        function scheduleCrossAutoCheck() {
+            clearTimeout(crossAutoCheckTimer);
+            crossAutoCheckTimer = setTimeout(() => {
+                const values = [
+                    document.getElementById('crossMid1').value.trim(),
+                    document.getElementById('crossMid2').value.trim(),
+                    document.getElementById('crossMid3').value.trim()
+                ];
+                if (values.every(Boolean)) {
+                    window.checkCross();
+                }
+            }, 180);
+        }
+
         window.checkCross = () => {
             const p = crossPuzzles[crossIndex];
             const w1 = p.start;
@@ -1361,7 +1388,16 @@
         ['crossMid1', 'crossMid2', 'crossMid3'].forEach((id) => {
             const el = document.getElementById(id);
             if (el) {
-                el.addEventListener('input', () => startStopwatch('cross'));
+                el.addEventListener('input', () => {
+                    startStopwatch('cross');
+                    scheduleCrossAutoCheck();
+                });
+                el.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        window.checkCross();
+                    }
+                });
             }
         });
 

@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminEmail() {
+      return signedIn() && (
+        request.auth.token.email in [
+          'admin@myhq.in'
+        ] || request.auth.token.email.matches('.*@myhq\.in$')
+      );
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminEmail();
+    }
+
+    match /prizes/{prizeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminEmail();
+    }
+
+    match /winners/{winnerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminEmail();
+    }
+
+    match /players/{playerId} {
+      allow create, update: if
+        request.resource.data.email == playerId
+        && request.resource.data.keys().hasOnly(['name', 'email', 'city', 'dept', 'joined'])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.city is string
+        && request.resource.data.dept is string
+        && request.resource.data.joined is string;
+      allow read, delete: if isAdminEmail();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

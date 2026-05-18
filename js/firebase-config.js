@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC05CGSZAIatme9e1489qyVQrAoswNBNAY",
@@ -18,6 +19,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app); // Storage Enabled
+export const auth = getAuth(app);
 
 export const GAMES = [
     { id: 'bingo', name: 'Bingo', url: 'https://bingo-final.vercel.app/' },

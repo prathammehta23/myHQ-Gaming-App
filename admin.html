@@ -9,23 +9,124 @@
         .dynamic-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .dynamic-row input { flex: 1; margin: 0; }
         input[type="file"] { padding: 8px; background: #f9f9f9; cursor: pointer; font-size: 0.8rem; }
+        .auth-card { max-width: 520px; margin: 28px auto; }
+        .auth-note { font-size: 0.85rem; color: #64748b; margin-top: 8px; }
+
+        .asset-section {
+            border-top-color: #3b82f6;
+            background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+        }
+        .asset-caption {
+            margin: 0 0 14px;
+            font-size: 0.9rem;
+            color: #55607a;
+        }
+        .asset-rows {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .asset-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: #f8faff;
+            border: 1px solid #dbe5ff;
+            border-radius: 12px;
+        }
+        .asset-row input {
+            margin: 0;
+        }
+        .asset-btn {
+            width: auto;
+            min-width: 0;
+            margin-top: 0;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            line-height: 1.2;
+            border-radius: 10px;
+        }
+        .asset-toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .asset-toolbar .btn {
+            width: auto;
+            min-width: 180px;
+            margin-top: 0;
+        }
+        .asset-preview {
+            margin-top: 10px;
+            border: 1px solid #dbe5ff;
+            border-radius: 12px;
+            background: #f8faff;
+            padding: 10px;
+            min-height: 44px;
+            color: #64748b;
+            font-size: 0.86rem;
+        }
+        .asset-preview-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #4b5b82;
+            margin-bottom: 8px;
+        }
+        .asset-preview-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        .asset-preview-item + .asset-preview-item {
+            margin-top: 6px;
+        }
+        .asset-preview-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 720px) {
+            .asset-row {
+                grid-template-columns: 1fr;
+            }
+            .asset-row .asset-btn {
+                justify-self: flex-start;
+            }
+            .asset-toolbar .btn {
+                width: 100%;
+                min-width: 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- SECURITY GATE -->
-    <script>
-        let pass = null;
-        try {
-            pass = prompt("Enter Admin Passcode:");
-        } catch (error) {
-            pass = "myHQ2026";
-        }
-        if (pass !== "myHQ2026") window.location.href = "index.html";
-    </script>
-
     <div id="navbar-container"></div>
-    <div class="container">
-        <h1 style="margin-bottom: 30px;">Event Control Center</h1>
+    <div class="container" id="authContainer">
+        <div class="admin-box auth-card">
+            <h3>Admin Sign In</h3>
+            <p style="color:#475569; margin-bottom: 16px;">Sign in with your Firebase admin account to unlock event controls and uploads.</p>
+            <form id="authForm" autocomplete="off">
+                <div class="form-group"><label>Email</label><input type="email" id="adminEmail" placeholder="admin@company.com" autocomplete="off" required></div>
+                <div class="form-group"><label>Password</label><input type="password" id="adminPassword" placeholder="Enter password" autocomplete="new-password" required></div>
+                <button type="submit" class="btn btn-primary" id="btnAuth">Sign In</button>
+                <p id="authStatus" class="auth-note"></p>
+            </form>
+        </div>
+    </div>
+    <div class="container" id="adminPanel">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 30px;">
+            <h1 style="margin:0;">Event Control Center</h1>
+            <button type="button" class="btn btn-outline" id="btnSignOut" style="max-width: 180px;">Sign Out</button>
+        </div>
         
         <!-- STEP 1: SCHEDULE EVENT -->
         <div class="admin-box">
@@ -88,42 +189,52 @@
         </div>
 
         <!-- STEP 2: ADD PRIZES TO EVENT -->
-        <div class="admin-box">
+        <div class="admin-box asset-section">
             <h3>2. Add Prizes to Event</h3>
+            <p class="asset-caption">Add multiple prize tiers cleanly and review existing entries before saving.</p>
             <form id="pForm">
                 <div class="form-group">
                     <label>Select Target Event</label>
-                    <select id="pEventId" required><option disabled selected>Loading events...</option></select>
+                    <select id="pEventId" required onchange="previewExistingPrizes()"><option disabled selected>Loading events...</option></select>
+                    <div id="pExistingPreview" class="asset-preview"></div>
                 </div>
-                <div id="prizeRows">
-                    <div class="dynamic-row">
+                <div id="prizeRows" class="asset-rows">
+                    <div class="asset-row">
                         <input type="text" class="p-tier" placeholder="Tier (e.g. Full House)" required>
                         <input type="text" class="p-name" placeholder="Prize (e.g. ₹2000 Voucher)" required>
-                        <input type="file" class="p-img" accept="image/*" required title="Upload Prize Image">
+                        <button type="button" class="btn btn-outline asset-btn" onclick="removeAssetRow(this)">Remove</button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-outline" onclick="addPrizeRow()" style="margin-bottom: 15px;">+ Add Another Prize Tier</button>
-                <button type="submit" class="btn btn-primary" id="btnPrize">Upload & Save Prizes</button>
+                <div class="asset-toolbar">
+                    <button type="button" class="btn btn-outline" onclick="addPrizeRow()">+ Add Another Prize Tier</button>
+                    <button type="submit" class="btn btn-primary" id="btnPrize">Save Prizes</button>
+                </div>
             </form>
         </div>
 
         <!-- STEP 3: DECLARE WINNERS -->
-        <div class="admin-box">
+        <div class="admin-box asset-section">
             <h3>3. Declare Event Winners</h3>
+            <p class="asset-caption">Declare all winners in one pass and keep each row easy to read and edit.</p>
             <form id="wForm">
                 <div class="form-group">
                     <label>Select Completed Event</label>
-                    <select id="wEventId" required><option disabled selected>Loading events...</option></select>
+                    <select id="wEventId" required onchange="onWinnerEventChange()"><option disabled selected>Loading events...</option></select>
+                    <div id="wExistingPreview" class="asset-preview"></div>
                 </div>
-                <div id="winnerRows">
-                    <div class="dynamic-row">
+                <div id="winnerRows" class="asset-rows">
+                    <div class="asset-row">
                         <input type="text" class="w-name" placeholder="Winner's Name" required>
-                        <input type="text" class="w-tier" placeholder="Prize Won" required>
-                        <input type="file" class="w-img" accept="image/*" required title="Upload Winner Photo">
+                        <select class="w-tier" required disabled>
+                            <option value="" selected disabled>Pick event, then select prize</option>
+                        </select>
+                        <button type="button" class="btn btn-outline asset-btn" onclick="removeAssetRow(this)">Remove</button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-outline" onclick="addWinnerRow()" style="margin-bottom: 15px;">+ Add Another Winner</button>
-                <button type="submit" class="btn btn-primary" id="btnWinner">Upload & Publish Winners</button>
+                <div class="asset-toolbar">
+                    <button type="button" class="btn btn-outline" onclick="addWinnerRow()">+ Add Another Winner</button>
+                    <button type="submit" class="btn btn-primary" id="btnWinner">Publish Winners</button>
+                </div>
             </form>
         </div>
 
@@ -186,15 +297,87 @@
             </div>
             <textarea id="mgJsonBox" rows="4" placeholder="Exported JSON appears here, or paste JSON to import" style="margin-top:10px;"></textarea>
         </div>
+
+        <!-- Removed Step 6 as it is now integrated into Step 2 and Step 3 -->
     </div>
 
     <script type="module">
-        import { db, storage } from './js/firebase-config.js';
+        import { db, storage, auth } from './js/firebase-config.js';
         import { injectNavbar } from './js/navbar.js';
         import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
+        import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
         injectNavbar();
+
+        const ADMIN_EMAIL_ALLOWLIST = [
+            'admin@myhq.in'
+        ];
+
+        const authContainer = document.getElementById('authContainer');
+        const adminContainer = document.getElementById('adminPanel');
+        const authForm = document.getElementById('authForm');
+        const authStatus = document.getElementById('authStatus');
+        const btnAuth = document.getElementById('btnAuth');
+        const btnSignOut = document.getElementById('btnSignOut');
+
+        function setAuthStatus(message, isError = false) {
+            authStatus.innerText = message;
+            authStatus.style.color = isError ? '#b91c1c' : '#64748b';
+        }
+
+        function isAllowedAdmin(user) {
+            if (!user || !user.email) return false;
+            return ADMIN_EMAIL_ALLOWLIST.includes(user.email.toLowerCase());
+        }
+
+        function setAdminUiVisible(visible) {
+            authContainer.style.display = visible ? 'none' : 'block';
+            adminContainer.style.display = visible ? 'block' : 'none';
+        }
+
+        authForm.onsubmit = async (event) => {
+            event.preventDefault();
+            btnAuth.innerText = 'Signing In...';
+            btnAuth.disabled = true;
+            setAuthStatus('');
+
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+
+            try {
+                const creds = await signInWithEmailAndPassword(auth, email, password);
+                if (!isAllowedAdmin(creds.user)) {
+                    await signOut(auth);
+                    throw new Error('This account is not in the admin allowlist. Update ADMIN_EMAIL_ALLOWLIST in admin.html.');
+                }
+            } catch (error) {
+                setAuthStatus(error.message || 'Sign-in failed.', true);
+            } finally {
+                btnAuth.innerText = 'Sign In';
+                btnAuth.disabled = false;
+            }
+        };
+
+        btnSignOut.onclick = async () => {
+            await signOut(auth);
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!isAllowedAdmin(user)) {
+                setAdminUiVisible(false);
+                if (user) {
+                    setAuthStatus('Signed in, but this email is not authorized for admin access.', true);
+                } else {
+                    setAuthStatus('');
+                }
+                return;
+            }
+
+            setAdminUiVisible(true);
+            setAuthStatus('');
+            await loadDropdowns();
+        });
 
         // Toggle Event Type Fields
         window.toggleEventFields = () => {
@@ -243,30 +426,74 @@
             return await getDownloadURL(fileRef);
         }
 
-        // Image Upload Helper
-        async function uploadImage(file, folder) {
-            if (!file) return 'https://via.placeholder.com/150';
-            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-            const fileRef = ref(storage, `${folder}/${Date.now()}_${sanitizedName}`);
-            await uploadBytes(fileRef, file);
-            return await getDownloadURL(fileRef);
-        }
+        // Image Upload functionality has been removed. Images are generated automatically using DiceBear graphics.
 
         // Load Events into Dropdowns
-        async function loadDropdowns() {
-            const q = query(collection(db, "events"), orderBy("date", "desc"));
-            const snapshot = await getDocs(q);
-            let options = '<option disabled selected>Select an Event</option>';
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const eventLabel = data.type === 'external' ? `${data.category}` : `${data.game}`;
-                options += `<option value="${doc.id}">${data.title} (${eventLabel})</option>`;
-            });
-            document.getElementById('pEventId').innerHTML = options;
-            document.getElementById('wEventId').innerHTML = options;
-            document.getElementById('dEventId').innerHTML = options;
+        function setEventDropdowns(optionsHtml) {
+            document.getElementById('pEventId').innerHTML = optionsHtml;
+            document.getElementById('wEventId').innerHTML = optionsHtml;
+            document.getElementById('dEventId').innerHTML = optionsHtml;
         }
-        loadDropdowns();
+
+        async function loadDropdowns() {
+            setEventDropdowns('<option disabled selected>Loading events...</option>');
+
+            try {
+                // Fetch all prizes and winners to count them
+                const prizeSnap = await getDocs(collection(db, "prizes"));
+                const winnerSnap = await getDocs(collection(db, "winners"));
+                
+                const prizeCounts = {};
+                prizeSnap.forEach(doc => {
+                    const eid = doc.data().eventId;
+                    prizeCounts[eid] = (prizeCounts[eid] || 0) + 1;
+                });
+                
+                const winnerCounts = {};
+                winnerSnap.forEach(doc => {
+                    const eid = doc.data().eventId;
+                    winnerCounts[eid] = (winnerCounts[eid] || 0) + 1;
+                });
+
+                let snapshot;
+                try {
+                    // Primary query: keeps most recent events first.
+                    snapshot = await getDocs(query(collection(db, "events"), orderBy("date", "desc")));
+                } catch (primaryError) {
+                    console.warn('Primary event query failed, retrying without ordering:', primaryError);
+                    snapshot = await getDocs(collection(db, "events"));
+                }
+
+                if (!snapshot || snapshot.empty) {
+                    setEventDropdowns('<option disabled selected>No events found</option>');
+                    return;
+                }
+
+                let options = '<option disabled selected>Select an Event</option>';
+                snapshot.forEach((docItem) => {
+                    const data = docItem.data();
+                    const eventLabel = data.type === 'external' ? (data.category || 'External') : (data.game || 'Game');
+                    const eventTitle = data.title || 'Untitled Event';
+                    
+                    const pCount = prizeCounts[docItem.id] || 0;
+                    const wCount = winnerCounts[docItem.id] || 0;
+                    
+                    let countText = "";
+                    if (pCount > 0 || wCount > 0) {
+                        countText = ` [${pCount} Prizes, ${wCount} Winners]`;
+                    } else {
+                        countText = ` [Empty]`;
+                    }
+                    
+                    options += `<option value="${docItem.id}">${eventTitle} (${eventLabel})${countText}</option>`;
+                });
+                setEventDropdowns(options);
+            } catch (error) {
+                console.error('Unable to load events for admin dropdowns:', error);
+                setEventDropdowns('<option disabled selected>Unable to load events</option>');
+            }
+        }
+        setAdminUiVisible(false);
 
         // Mini-Games Leaderboard Admin (local leaderboard moderation)
         const MINI_LB_KEY = 'myhq_mini_game_leaderboards_v1';
@@ -401,18 +628,180 @@
         loadMiniGamesAdmin();
 
         // Dynamic Rows Logic
+        window.removeAssetRow = (btn) => {
+            const rowsContainer = btn.closest('.asset-rows');
+            if (!rowsContainer) return;
+
+            const rows = rowsContainer.querySelectorAll('.asset-row');
+            if (rows.length <= 1) {
+                alert('At least one row is required.');
+                return;
+            }
+
+            btn.closest('.asset-row')?.remove();
+        };
+
         window.addPrizeRow = () => {
             const div = document.createElement('div');
-            div.className = 'dynamic-row';
-            div.innerHTML = `<input type="text" class="p-tier" placeholder="Tier" required><input type="text" class="p-name" placeholder="Prize Name" required><input type="file" class="p-img" accept="image/*" required>`;
+            div.className = 'asset-row';
+            div.innerHTML = `<input type="text" class="p-tier" placeholder="Tier" required><input type="text" class="p-name" placeholder="Prize Name" required><button type="button" class="btn btn-outline asset-btn" onclick="removeAssetRow(this)">Remove</button>`;
             document.getElementById('prizeRows').appendChild(div);
         };
 
         window.addWinnerRow = () => {
             const div = document.createElement('div');
-            div.className = 'dynamic-row';
-            div.innerHTML = `<input type="text" class="w-name" placeholder="Winner's Name" required><input type="text" class="w-tier" placeholder="Prize Won" required><input type="file" class="w-img" accept="image/*" required>`;
+            div.className = 'asset-row';
+            div.innerHTML = `<input type="text" class="w-name" placeholder="Winner's Name" required><select class="w-tier" required disabled><option value="" selected disabled>Pick event, then select prize</option></select><button type="button" class="btn btn-outline asset-btn" onclick="removeAssetRow(this)">Remove</button>`;
             document.getElementById('winnerRows').appendChild(div);
+            syncWinnerPrizeOptions();
+        };
+
+        function dedupePrizeOptions(prizes) {
+            const seen = new Set();
+            const output = [];
+            prizes.forEach((p) => {
+                const tier = (p.tier || '').trim();
+                const name = (p.name || '').trim();
+                const value = [tier, name].filter(Boolean).join(' - ') || name || tier;
+                if (!value) return;
+                const key = value.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                output.push(value);
+            });
+            return output;
+        }
+
+        async function syncWinnerPrizeOptions() {
+            const eventId = document.getElementById('wEventId').value;
+            const prizeSelects = document.querySelectorAll('.w-tier');
+            const publishBtn = document.getElementById('btnWinner');
+
+            if (!eventId) {
+                prizeSelects.forEach((select) => {
+                    select.innerHTML = '<option value="" selected disabled>Pick event, then select prize</option>';
+                    select.disabled = true;
+                });
+                publishBtn.disabled = true;
+                return;
+            }
+
+            try {
+                const snap = await getDocs(query(collection(db, "prizes"), where("eventId", "==", eventId)));
+                const options = dedupePrizeOptions(snap.docs.map((docItem) => docItem.data()));
+
+                if (!options.length) {
+                    prizeSelects.forEach((select) => {
+                        select.innerHTML = '<option value="" selected disabled>No prizes found. Add prizes first.</option>';
+                        select.disabled = true;
+                    });
+                    publishBtn.disabled = true;
+                    return;
+                }
+
+                const optionsHtml = ['<option value="" disabled selected>Select Prize Won</option>']
+                    .concat(options.map((optionValue) => `<option value="${optionValue.replace(/"/g, '&quot;')}">${optionValue}</option>`))
+                    .join('');
+
+                prizeSelects.forEach((select) => {
+                    const previousValue = select.value;
+                    select.innerHTML = optionsHtml;
+                    select.disabled = false;
+                    if (previousValue && options.includes(previousValue)) {
+                        select.value = previousValue;
+                    }
+                });
+                publishBtn.disabled = false;
+            } catch (error) {
+                console.error('Unable to load prize options for winner form:', error);
+                prizeSelects.forEach((select) => {
+                    select.innerHTML = '<option value="" selected disabled>Unable to load prizes</option>';
+                    select.disabled = true;
+                });
+                publishBtn.disabled = true;
+            }
+        }
+
+        window.onWinnerEventChange = async () => {
+            await Promise.all([
+                previewExistingWinners(),
+                syncWinnerPrizeOptions()
+            ]);
+        };
+
+        window.deleteIndividualAsset = async (collectionName, docId) => {
+            const confirm = window.confirm(`Are you sure you want to delete this ${collectionName === 'prizes' ? 'prize' : 'winner'}?`);
+            if (!confirm) return;
+            
+            try {
+                await deleteDoc(doc(db, collectionName, docId));
+                // Refresh the inline previews directly
+                if (collectionName === 'prizes') {
+                    previewExistingPrizes();
+                } else {
+                    previewExistingWinners();
+                }
+            } catch (error) {
+                alert("Error deleting asset: " + error.message);
+            }
+        };
+
+        window.previewExistingPrizes = async () => {
+            const eventId = document.getElementById('pEventId').value;
+            const container = document.getElementById('pExistingPreview');
+            if (!eventId) return;
+
+            container.innerHTML = '<em>Loading existing prizes...</em>';
+            try {
+                const snap = await getDocs(query(collection(db, "prizes"), where("eventId", "==", eventId)));
+                if (snap.empty) {
+                    container.innerHTML = '<em>No prizes added yet for this event.</em>';
+                    return;
+                }
+                
+                let html = '<div class="asset-preview-title">Already Added Prizes</div>';
+                snap.forEach(doc => {
+                    const p = doc.data();
+                    html += `
+                        <div class="asset-preview-item">
+                            <div><strong>${p.name}</strong> <span class="asset-preview-meta">(${p.tier})</span></div>
+                            <button type="button" class="btn" style="background:#dc3545; color:white; padding:6px 10px; font-size:0.75rem; width:auto; min-width:0;" onclick="deleteIndividualAsset('prizes', '${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<em style="color:#dc3545;">Error loading existing prizes.</em>';
+            }
+        };
+
+        window.previewExistingWinners = async () => {
+            const eventId = document.getElementById('wEventId').value;
+            const container = document.getElementById('wExistingPreview');
+            if (!eventId) return;
+
+            container.innerHTML = '<em>Loading existing winners...</em>';
+            try {
+                const snap = await getDocs(query(collection(db, "winners"), where("eventId", "==", eventId)));
+                if (snap.empty) {
+                    container.innerHTML = '<em>No winners declared yet for this event.</em>';
+                    return;
+                }
+                
+                let html = '<div class="asset-preview-title">Already Declared Winners</div>';
+                snap.forEach(doc => {
+                    const w = doc.data();
+                    html += `
+                        <div class="asset-preview-item">
+                            <div><strong>${w.name}</strong> <span class="asset-preview-meta">(${w.tier})</span></div>
+                            <button type="button" class="btn" style="background:#dc3545; color:white; padding:6px 10px; font-size:0.75rem; width:auto; min-width:0;" onclick="deleteIndividualAsset('winners', '${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<em style="color:#dc3545;">Error loading existing winners.</em>';
+            }
         };
 
         // Delete Event Function
@@ -482,7 +871,7 @@
                     });
 
                     const label = `${title} (${gameName})`;
-                    document.querySelectorAll('#pEventId, #wEventId, #dEventId').forEach((select) => {
+                    document.querySelectorAll('#pEventId, #wEventId, #dEventId, #mEventId').forEach((select) => {
                         const option = document.createElement('option');
                         option.value = createdDoc.id;
                         option.textContent = label;
@@ -521,7 +910,7 @@
                     });
 
                     const label = `${title} (${category || 'External'})`;
-                    document.querySelectorAll('#pEventId, #wEventId, #dEventId').forEach((select) => {
+                    document.querySelectorAll('#pEventId, #wEventId, #dEventId, #mEventId').forEach((select) => {
                         const option = document.createElement('option');
                         option.value = createdDoc.id;
                         option.textContent = label;
@@ -544,43 +933,95 @@
             }
         };
 
+        function getPrizeImage(tier, name) {
+            const t = (tier + ' ' + name).toLowerCase();
+            let emoji = '🎁'; // default gift
+            if (t.includes('1st') || t.includes('first') || t.includes('champion')) emoji = '🏆';
+            else if (t.includes('2nd') || t.includes('second')) emoji = '🥈';
+            else if (t.includes('3rd') || t.includes('third')) emoji = '🥉';
+            else if (t.includes('voucher') || t.includes('coupon') || t.includes('card')) emoji = '🎟️';
+            else if (t.includes('cash') || t.includes('money') || t.includes('₹') || t.includes('paytm')) emoji = '💸';
+            else if (t.includes('house') || t.includes('full')) emoji = '🏠';
+            else if (t.includes('line') || t.includes('row')) emoji = '➖';
+            else if (t.includes('medal')) emoji = '🏅';
+            else if (t.includes('star')) emoji = '⭐';
+            
+            // Generate a lightweight, crisp SVG with a soft background circle
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#f1f5f9"/><text x="50" y="68" font-size="50" text-anchor="middle">${emoji}</text></svg>`;
+            return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        }
+
+        function getWinnerImage(name) {
+            // UI-Avatars generates a crisp initial-based avatar matching the winner's exact name
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=256&bold=true`;
+        }
+
         document.getElementById('pForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnPrize');
-            btn.innerText = "Uploading Images & Saving..."; btn.disabled = true;
+            btn.innerText = "Saving Prizes..."; btn.disabled = true;
 
-            const eventId = document.getElementById('pEventId').value;
-            const eventName = document.getElementById('pEventId').options[document.getElementById('pEventId').selectedIndex].text;
-            
-            const tiers = document.querySelectorAll('.p-tier');
-            const names = document.querySelectorAll('.p-name');
-            const files = document.querySelectorAll('.p-img');
-            
-            for(let i=0; i<tiers.length; i++){
-                const imgUrl = await uploadImage(files[i].files[0], 'prizes');
-                await addDoc(collection(db, "prizes"), { eventId, eventName, tier: tiers[i].value, name: names[i].value, img: imgUrl });
+            try {
+                const eventId = document.getElementById('pEventId').value;
+                const eventName = document.getElementById('pEventId').options[document.getElementById('pEventId').selectedIndex].text;
+
+                const tiers = document.querySelectorAll('.p-tier');
+                const names = document.querySelectorAll('.p-name');
+
+                for (let i = 0; i < tiers.length; i++) {
+                    const tierVal = tiers[i].value;
+                    const nameVal = names[i].value;
+                    const imgUrl = getPrizeImage(tierVal, nameVal);
+                    
+                    await addDoc(collection(db, "prizes"), { eventId, eventName, tier: tierVal, name: nameVal, img: imgUrl });
+                }
+
+                alert("Prizes Saved!");
+                location.reload();
+            } catch (error) {
+                alert("Error saving prizes: " + (error.message || 'Unknown error'));
+            } finally {
+                btn.innerText = "Save Prizes";
+                btn.disabled = false;
             }
-            alert("Prizes Uploaded & Linked!"); location.reload();
         };
 
         document.getElementById('wForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnWinner');
-            btn.innerText = "Uploading Photos & Saving..."; btn.disabled = true;
+            btn.innerText = "Publishing Winners..."; btn.disabled = true;
 
-            const eventId = document.getElementById('wEventId').value;
-            const eventName = document.getElementById('wEventId').options[document.getElementById('wEventId').selectedIndex].text;
-            
-            const names = document.querySelectorAll('.w-name');
-            const tiers = document.querySelectorAll('.w-tier');
-            const files = document.querySelectorAll('.w-img');
-            
-            for(let i=0; i<names.length; i++){
-                const imgUrl = await uploadImage(files[i].files[0], 'winners');
-                await addDoc(collection(db, "winners"), { eventId, eventName, name: names[i].value, tier: tiers[i].value, img: imgUrl, date: new Date().toLocaleDateString() });
+            try {
+                const eventId = document.getElementById('wEventId').value;
+                const eventName = document.getElementById('wEventId').options[document.getElementById('wEventId').selectedIndex].text;
+
+                const names = document.querySelectorAll('.w-name');
+                const tiers = document.querySelectorAll('.w-tier');
+
+                const hasInvalidTier = Array.from(tiers).some((tierInput) => tierInput.disabled || !tierInput.value);
+                if (hasInvalidTier) {
+                    throw new Error('Please add prizes for this event first, then select Prize Won from the dropdown.');
+                }
+
+                for (let i = 0; i < names.length; i++) {
+                    const nameVal = names[i].value;
+                    const tierVal = tiers[i].value;
+                    const imgUrl = getWinnerImage(nameVal);
+                    
+                    await addDoc(collection(db, "winners"), { eventId, eventName, name: nameVal, tier: tierVal, img: imgUrl, date: new Date().toLocaleDateString() });
+                }
+
+                alert("Winners Published!");
+                location.reload();
+            } catch (error) {
+                alert("Error saving winners: " + (error.message || 'Unknown error'));
+            } finally {
+                btn.innerText = "Publish Winners";
+                btn.disabled = false;
             }
-            alert("Winners Uploaded & Published!"); location.reload();
         };
+
+        syncWinnerPrizeOptions();
     </script>
 </body>
 </html>
