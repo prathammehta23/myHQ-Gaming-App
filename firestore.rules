@@ -28,6 +28,20 @@ service cloud.firestore {
       allow create, update, delete: if isAdminEmail();
     }
 
+    match /mini_game_scores/{scoreId} {
+      allow read: if isAdminEmail();
+      allow create: if
+        request.resource.data.keys().hasOnly(['game', 'name', 'email', 'score', 'timestamp', 'recordedAt']) &&
+        request.resource.data.game is string &&
+        request.resource.data.name is string &&
+        request.resource.data.email is string &&
+        request.resource.data.score is number &&
+        request.resource.data.timestamp is number &&
+        request.resource.data.recordedAt is string &&
+        request.resource.data.game in ['sudoku', 'zip', 'cross', 'simon', 'tap', 'reaction', 'pairs', 'math'];
+      allow update, delete: if isAdminEmail();
+    }
+
     match /players/{playerId} {
       allow create, update: if
         request.resource.data.email == playerId

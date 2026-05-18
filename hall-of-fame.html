@@ -47,6 +47,14 @@
 
         let eventsMap = {}; // Will hold eventName -> array of winners
 
+        function normalizeEventName(rawName) {
+            return String(rawName || 'Unnamed Event')
+                .replace(/\s*\[[^\]]*\]\s*$/i, '')
+                .replace(/,\s*\d+\s*prizes?\s*,\s*\d+\s*winners?\s*$/i, '')
+                .replace(/\s*\((bingo|word\s*trial|clue\s*cascade|family\s*feud|anagram|external|game)\)\s*$/i, '')
+                .trim() || 'Unnamed Event';
+        }
+
         async function loadEventsWithWinners() {
             const grid = document.getElementById('eventGrid');
             grid.innerHTML = '<p class="text-center text-muted" style="grid-column: 1/-1;">Loading champions...</p>';
@@ -56,7 +64,7 @@
             
             snap.forEach((doc) => {
                 const w = doc.data();
-                const eventName = w.eventName || 'Unnamed Event';
+                const eventName = normalizeEventName(w.eventName);
                 if (!eventsMap[eventName]) eventsMap[eventName] = [];
                 eventsMap[eventName].push(w);
             });

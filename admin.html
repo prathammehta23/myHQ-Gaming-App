@@ -436,6 +436,29 @@
             document.getElementById('dEventId').innerHTML = optionsHtml;
         }
 
+        function escapeHtmlAttr(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function cleanEventNameLabel(value) {
+            return String(value || '')
+                .replace(/\s*\[[^\]]*\]\s*$/i, '')
+                .replace(/,\s*\d+\s*prizes?\s*,\s*\d+\s*winners?\s*$/i, '')
+                .replace(/\s*\((bingo|word\s*trial|clue\s*cascade|family\s*feud|anagram|external|game)\)\s*$/i, '')
+                .trim();
+        }
+
+        function getSelectedEventName(selectId) {
+            const select = document.getElementById(selectId);
+            const option = select?.options?.[select.selectedIndex];
+            if (!option) return 'Untitled Event';
+            return cleanEventNameLabel(option.dataset.eventTitle || option.text || 'Untitled Event');
+        }
+
         async function loadDropdowns() {
             setEventDropdowns('<option disabled selected>Loading events...</option>');
 
@@ -486,7 +509,7 @@
                         countText = ` [Empty]`;
                     }
                     
-                    options += `<option value="${docItem.id}">${eventTitle} (${eventLabel})${countText}</option>`;
+                    options += `<option value="${docItem.id}" data-event-title="${escapeHtmlAttr(eventTitle)}">${eventTitle} (${eventLabel})${countText}</option>`;
                 });
                 setEventDropdowns(options);
             } catch (error) {
@@ -526,128 +549,104 @@
             return order.filter((g) => gameKeys.includes(g));
         }
 
+        function scoreSortFn(game) {
+            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
+            return (a, b) => (rules && rules.descending ? b.score - a.score : a.score - b.score);
+        }
+
+        function entryKey(entry) {
+            return [
+                (entry.name || '').trim().toLowerCase(),
+                Number(entry.score || 0),
+                Number(entry.ts || entry.timestamp || 0)
+            ].join('|');
+        }
+
+        function mergeGameEntry(store, game, entry) {
+            if (!game) return;
+            if (!store[game]) store[game] = [];
+            const key = entryKey(entry);
+            if (store[game].some((existing) => entryKey(existing) === key)) return;
+            store[game].push(entry);
+        }
+
         window.loadMiniGamesAdmin = async () => {
             const filter = document.getElementById('mgGameFilter').value;
             const tbody = document.getElementById('mgLeaderboardRows');
             tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">Loading leaderboards...</td></tr>';
+            const mergedData = {};
             
             try {
-                // Try to load from Firestore first (dual storage)
+                // Load from Firestore first
                 const scoresSnap = await getDocs(query(collection(db, 'mini_game_scores')));
-                
-                if (!scoresSnap.empty) {
-                    const firestoreData = {};
-                    scoresSnap.forEach(docSnap => {
-                        const data = docSnap.data();
-                        const game = data.game;
-                        if (!firestoreData[game]) firestoreData[game] = [];
-                        firestoreData[game].push({
-                            id: docSnap.id,
-                            name: data.name || 'Player',
-                            score: data.score || 0,
-                            ts: data.timestamp || Date.now()
-                        });
+
+                scoresSnap.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    mergeGameEntry(mergedData, data.game, {
+                        id: docSnap.id,
+                        name: data.name || 'Player',
+                        score: Number(data.score || 0),
+                        ts: Number(data.timestamp || 0),
+                        source: 'firestore'
                     });
-                    
-                    // Sort entries by score and render
-                    const rows = [];
-                    const allGames = normalizeGameOrder(Object.keys(firestoreData || {}));
-                    const gameKeys = filter === 'all' ? allGames : allGames.filter((k) => k === filter);
-                    
-                    gameKeys.forEach((game) => {
-                        const entries = firestoreData[game] || [];
-                        entries.sort((a, b) => {
-                            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
-                            return rules && rules.descending ? b.score - a.score : a.score - b.score;
-                        });
-                        
-                        entries.forEach((entry, idx) => {
-                            const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
-                            const unit = MINI_UNITS[game] || 'pts';
-                            rows.push(`
-                                <tr style="border-top:1px solid #edf0fa;">
-                                    <td style="padding:10px; text-transform:capitalize;">${game}</td>
-                                    <td style="padding:10px;">${entry.name}</td>
-                                    <td style="padding:10px;">${entry.score} ${unit}</td>
-                                    <td style="padding:10px;">${dt}</td>
-                                    <td style="padding:10px;">
-                                        <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("firestore", "${game}", "${entry.id}", ${JSON.stringify(entry.name)}, ${entry.score}, ${entry.ts})'>Remove</button>
-                                    </td>
-                                </tr>
-                            `);
-                        });
-                    });
-                    
-                    if (rows.length > 0) {
-                        tbody.innerHTML = rows.join('');
-                        return;
-                    }
-                }
+                });
             } catch (err) {
-                console.warn('Firestore read failed, trying RTDB:', err);
+                console.warn('Firestore read failed:', err);
             }
-            
+
             try {
-                // Fallback to Firebase RTDB
+                // Merge from RTDB
                 const fbRefPath = rtdbRef(rtdb, 'leaderboards');
                 const snapshot = await get(fbRefPath);
                 
                 if (snapshot.exists()) {
                     const fbData = snapshot.val();
-                    const rows = [];
-                    const allGames = normalizeGameOrder(Object.keys(fbData || {}));
-                    const gameKeys = filter === 'all' ? allGames : allGames.filter((k) => k === filter);
-                    
-                    gameKeys.forEach((game) => {
+                    Object.keys(fbData || {}).forEach((game) => {
                         const scores = fbData[game]?.scores || {};
-                        const entries = Object.entries(scores).map(([key, val]) => ({
-                            id: key,
-                            name: val.name || 'Player',
-                            score: val.score || 0,
-                            ts: val.timestamp || Date.now()
-                        })).sort((a, b) => {
-                            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
-                            return rules && rules.descending ? b.score - a.score : a.score - b.score;
-                        });
-                        
-                        entries.forEach((entry, idx) => {
-                            const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
-                            const unit = MINI_UNITS[game] || 'pts';
-                            rows.push(`
-                                <tr style="border-top:1px solid #edf0fa;">
-                                    <td style="padding:10px; text-transform:capitalize;">${game}</td>
-                                    <td style="padding:10px;">${entry.name}</td>
-                                    <td style="padding:10px;">${entry.score} ${unit}</td>
-                                    <td style="padding:10px;">${dt}</td>
-                                    <td style="padding:10px;">
-                                        <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("rtdb", "${game}", "${entry.id}", ${JSON.stringify(entry.name)}, ${entry.score}, ${entry.ts})'>Remove</button>
-                                    </td>
-                                </tr>
-                            `);
+                        Object.entries(scores).forEach(([key, val]) => {
+                            mergeGameEntry(mergedData, game, {
+                                id: key,
+                                name: val.name || 'Player',
+                                score: Number(val.score || 0),
+                                ts: Number(val.timestamp || 0),
+                                source: 'rtdb'
+                            });
                         });
                     });
-                    
-                    if (rows.length > 0) {
-                        tbody.innerHTML = rows.join('');
-                        return;
-                    }
                 }
             } catch (err) {
-                console.warn('RTDB read failed, falling back to localStorage:', err);
+                console.warn('RTDB read failed:', err);
             }
-            
-            // Fallback to localStorage
-            const data = readMiniLeaderboards();
-            const tbody2 = document.getElementById('mgLeaderboardRows');
-            const keys = normalizeGameOrder(Object.keys(data));
-            const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
+
+            try {
+                // Merge from localStorage for older offline scores
+                const data = readMiniLeaderboards();
+                Object.keys(data).forEach((game) => {
+                    const entries = Array.isArray(data[game]) ? data[game] : [];
+                    entries.forEach((entry, idx) => {
+                        mergeGameEntry(mergedData, game, {
+                            id: String(idx),
+                            name: entry.name || 'Player',
+                            score: Number(entry.score || 0),
+                            ts: Number(entry.ts || Date.now()),
+                            source: 'localStorage'
+                        });
+                    });
+                });
+            } catch (err) {
+                console.warn('localStorage read failed:', err);
+            }
+
             const rows = [];
+            const keys = normalizeGameOrder(Object.keys(mergedData));
+            const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
 
             gameKeys.forEach((game) => {
-                const entries = Array.isArray(data[game]) ? data[game] : [];
+                const entries = (mergedData[game] || []).slice().sort(scoreSortFn(game));
                 entries.forEach((entry, idx) => {
                     const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
                     const unit = MINI_UNITS[game] || 'pts';
+                    const storageType = entry.source || 'localStorage';
                     rows.push(`
                         <tr style="border-top:1px solid #edf0fa;">
                             <td style="padding:10px; text-transform:capitalize;">${game}</td>
@@ -655,7 +654,7 @@
                             <td style="padding:10px;">${entry.score} ${unit}</td>
                             <td style="padding:10px;">${dt}</td>
                             <td style="padding:10px;">
-                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("localStorage", "${game}", ${idx}, ${JSON.stringify(entry.name || 'Player')}, ${entry.score}, ${entry.ts || Date.now()})'>Remove</button>
+                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("${storageType}", "${game}", ${JSON.stringify(entry.id)}, ${JSON.stringify(entry.name || 'Player')}, ${entry.score}, ${entry.ts || Date.now()})'>Remove</button>
                             </td>
                         </tr>
                     `);
@@ -663,11 +662,11 @@
             });
 
             if (!rows.length) {
-                tbody2.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
                 return;
             }
 
-            tbody2.innerHTML = rows.join('');
+            tbody.innerHTML = rows.join('');
         };
 
         window.deleteMiniLeaderboardEntry = async (storageType, game, identifier, name, score, ts) => {
@@ -769,13 +768,8 @@
             try {
                 // Clear from Firestore
                 const scoresSnap = await getDocs(query(collection(db, 'mini_game_scores'), where('game', '==', game)));
-                scoresSnap.forEach(async (docSnap) => {
-                    try {
-                        await deleteDoc(doc(db, 'mini_game_scores', docSnap.id));
-                    } catch (err) {
-                        console.warn(`Error deleting Firestore doc:`, err);
-                    }
-                });
+                const deletes = scoresSnap.docs.map((docSnap) => deleteDoc(doc(db, 'mini_game_scores', docSnap.id)));
+                await Promise.all(deletes);
             } catch (err) {
                 console.warn('Firestore clear failed:', err);
             }
@@ -802,13 +796,8 @@
             try {
                 // Clear all from Firestore
                 const scoresSnap = await getDocs(collection(db, 'mini_game_scores'));
-                scoresSnap.forEach(async (docSnap) => {
-                    try {
-                        await deleteDoc(doc(db, 'mini_game_scores', docSnap.id));
-                    } catch (err) {
-                        console.warn(`Error deleting Firestore doc:`, err);
-                    }
-                });
+                const deletes = scoresSnap.docs.map((docSnap) => deleteDoc(doc(db, 'mini_game_scores', docSnap.id)));
+                await Promise.all(deletes);
             } catch (err) {
                 console.warn('Firestore clear all failed:', err);
             }
@@ -1151,6 +1140,7 @@
                         const option = document.createElement('option');
                         option.value = createdDoc.id;
                         option.textContent = label;
+                        option.dataset.eventTitle = title;
                         if (select.options.length && select.options[0].disabled) {
                             select.insertBefore(option, select.options[1] || null);
                         } else {
@@ -1190,6 +1180,7 @@
                         const option = document.createElement('option');
                         option.value = createdDoc.id;
                         option.textContent = label;
+                        option.dataset.eventTitle = title;
                         if (select.options.length && select.options[0].disabled) {
                             select.insertBefore(option, select.options[1] || null);
                         } else {
@@ -1239,7 +1230,7 @@
 
             try {
                 const eventId = document.getElementById('pEventId').value;
-                const eventName = document.getElementById('pEventId').options[document.getElementById('pEventId').selectedIndex].text;
+                const eventName = getSelectedEventName('pEventId');
 
                 const tiers = document.querySelectorAll('.p-tier');
                 const names = document.querySelectorAll('.p-name');
@@ -1269,7 +1260,7 @@
 
             try {
                 const eventId = document.getElementById('wEventId').value;
-                const eventName = document.getElementById('wEventId').options[document.getElementById('wEventId').selectedIndex].text;
+                const eventName = getSelectedEventName('wEventId');
 
                 const names = document.querySelectorAll('.w-name');
                 const tiers = document.querySelectorAll('.w-tier');

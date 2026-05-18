@@ -63,6 +63,7 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 16px;
+            box-shadow: 0 8px 16px rgba(30, 78, 216, 0.08);
         }
 
         .summary-card .value {
@@ -70,6 +71,12 @@
             font-weight: 800;
             color: var(--primary);
             margin-top: 6px;
+        }
+
+        .summary-card .sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 4px;
         }
 
         .player-list {
@@ -138,6 +145,30 @@
             color: var(--text-main);
         }
 
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .stat-tile {
+            border: 1px solid #dfe7fb;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8faff;
+        }
+
+        .stat-tile .k {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .stat-tile .v {
+            margin-top: 4px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
         @media (max-width: 980px) {
 
             .profile-grid,
@@ -168,18 +199,22 @@
                 <div class="summary-card">
                     <div class="text-muted">Current Streak</div>
                     <div class="value" id="summaryStreak">0</div>
+                    <div class="sub">days active in a row</div>
                 </div>
                 <div class="summary-card">
                     <div class="text-muted">Games Played</div>
                     <div class="value" id="summaryGamesPlayed">0</div>
+                    <div class="sub">total attempts logged</div>
                 </div>
                 <div class="summary-card">
                     <div class="text-muted">Best Result</div>
                     <div class="value" id="summaryBestFinish">--</div>
+                    <div class="sub">top personal performance</div>
                 </div>
                 <div class="summary-card">
-                    <div class="text-muted">Score Entries</div>
-                    <div class="value" id="summaryTopFive">0</div>
+                    <div class="text-muted">Recent 7 Days</div>
+                    <div class="value" id="summaryRecentWeek">0</div>
+                    <div class="sub">plays in the last week</div>
                 </div>
             </div>
 
@@ -188,6 +223,13 @@
                     <h2>Best Records</h2>
                     <div class="player-list" id="bestRecordsList">
                         <div class="empty-note">Loading your best records...</div>
+                    </div>
+                </section>
+
+                <section class="profile-panel">
+                    <h2>Performance Breakdown</h2>
+                    <div class="player-list" id="performanceBreakdownList">
+                        <div class="empty-note">Loading per-game stats...</div>
                     </div>
                 </section>
             </div>
@@ -200,18 +242,7 @@
                     </ul>
                 </section>
 
-                <section class="profile-panel">
-                    <h3>Player Notes</h3>
-                    <div class="sticky-note" id="playerNotes">
-                        Your dashboard will show personal bests, recent plays, and your streak history here.
-                    </div>
-                    <div style="margin-top: 14px;">
-                        <p class="text-muted mb-2">Suggested add-ons</p>
-                        <div class="detail-list">
-
-                        </div>
-                    </div>
-                </section>
+                <!-- Player Notes panel removed per request -->
             </div>
         </div>
     </div>
@@ -234,6 +265,17 @@
             math: 'Math Sprint'
         };
 
+        const LEADERBOARD_RULES = {
+            sudoku: { descending: false },
+            zip: { descending: false },
+            cross: { descending: false },
+            simon: { descending: true },
+            tap: { descending: false },
+            reaction: { descending: false },
+            pairs: { descending: false },
+            math: { descending: false }
+        };
+
         function getPlayerEmail() {
             return localStorage.getItem('myhq_arcade_email') || '';
         }
@@ -247,9 +289,17 @@
         }
 
         function isBetterScore(game, candidate, currentBest) {
-            const scoreIsLowerBetter = ['sudoku', 'zip', 'cross', 'tap', 'reaction', 'pairs', 'math'].includes(game);
+            const rules = LEADERBOARD_RULES[game] || { descending: false };
             if (currentBest === null || currentBest === undefined) return true;
-            return scoreIsLowerBetter ? candidate < currentBest : candidate > currentBest;
+            return rules.descending ? candidate > currentBest : candidate < currentBest;
+        }
+
+        function normalizedScoreForComparison(game, score) {
+            const rules = LEADERBOARD_RULES[game] || { descending: false };
+            const val = Number(score || 0);
+            if (rules.descending) return val; // higher is better
+            // lower-is-better -> transform to higher-is-better scale
+            return 1 / (val + 1);
         }
 
         function bestBetterLabel(game, score) {
@@ -261,6 +311,7 @@
 
         async function loadProfile() {
             const name = getPlayerName();
+            const normalizedName = name.trim().toLowerCase();
             const title = document.getElementById('playerTitle');
             const subtitle = document.getElementById('playerSubtitle');
 
@@ -269,16 +320,31 @@
             document.getElementById('summaryStreak').innerText = String(getPlayerStreak());
 
             const bestByGame = {};
+            const breakdownByGame = {};
             const recentPlays = [];
             let totalEntries = 0;
-            let topFiveCount = 0;
+            let recentWeekCount = 0;
             let bestFinish = null;
             const playerEmail = getPlayerEmail();
+            const normalizedEmail = playerEmail.trim().toLowerCase();
+            const gameKeys = Object.keys(games);
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
-            for (const game of Object.keys(games)) {
+            const snapshots = await Promise.allSettled(
+                gameKeys.map((game) => get(ref(rtdb, `leaderboards/${game}/scores`)))
+            );
+
+            for (let i = 0; i < gameKeys.length; i++) {
+                const game = gameKeys[i];
+                const result = snapshots[i];
                 try {
-                    const snap = await get(ref(rtdb, `leaderboards/${game}/scores`));
+                    if (result.status !== 'fulfilled') {
+                        throw result.reason;
+                    }
+
+                    const snap = result.value;
                     if (!snap.exists()) continue;
+
                     const data = snap.val();
                     const rows = Object.values(data)
                         .map((entry) => ({
@@ -287,12 +353,16 @@
                             score: entry.score,
                             timestamp: entry.timestamp || 0
                         }))
-                        .filter((entry) => entry.email.toLowerCase() === playerEmail.toLowerCase() || entry.name === name);
+                        .filter((entry) => {
+                            const entryEmail = String(entry.email || '').trim().toLowerCase();
+                            const entryName = String(entry.name || '').trim().toLowerCase();
+                            return entryEmail === normalizedEmail || entryName === normalizedName;
+                        });
 
                     if (!rows.length) continue;
 
                     totalEntries += rows.length;
-                    topFiveCount += rows.filter((entry) => entry.timestamp).length;
+                    recentWeekCount += rows.filter((entry) => entry.timestamp && entry.timestamp >= sevenDaysAgo).length;
 
                     rows.sort((a, b) => a.timestamp - b.timestamp);
                     rows.forEach((entry) => {
@@ -307,9 +377,20 @@
                     });
                     bestByGame[game] = best;
 
+                    const avg = rows.reduce((sum, entry) => sum + Number(entry.score || 0), 0) / rows.length;
+                    const latest = rows[rows.length - 1];
+                    breakdownByGame[game] = {
+                        attempts: rows.length,
+                        best,
+                        avg: Number(avg.toFixed(2)),
+                        latest: latest ? latest.score : null,
+                        latestAt: latest ? latest.timestamp : 0
+                    };
+
                     if (best !== null) {
-                        if (!bestFinish || isBetterScore(game, best, bestFinish.score)) {
-                            bestFinish = { game, score: best };
+                        const norm = normalizedScoreForComparison(game, best);
+                        if (!bestFinish || norm > bestFinish.norm) {
+                            bestFinish = { game, score: best, norm };
                         }
                     }
                 } catch (err) {
@@ -321,7 +402,7 @@
             const recentFive = recentPlays.slice(0, 8);
 
             document.getElementById('summaryGamesPlayed').innerText = String(totalEntries);
-            document.getElementById('summaryTopFive').innerText = String(topFiveCount);
+            document.getElementById('summaryRecentWeek').innerText = String(recentWeekCount);
             document.getElementById('summaryBestFinish').innerText = bestFinish ? `${games[bestFinish.game]} · ${bestBetterLabel(bestFinish.game, bestFinish.score)}` : '--';
 
             const bestRecordsList = document.getElementById('bestRecordsList');
@@ -341,6 +422,31 @@
                 bestRecordsList.innerHTML = '<div class="empty-note">No game history found for this player yet.</div>';
             }
 
+            const breakdownList = document.getElementById('performanceBreakdownList');
+            const breakdownKeys = Object.keys(breakdownByGame);
+            if (breakdownKeys.length) {
+                breakdownList.innerHTML = breakdownKeys
+                    .sort((a, b) => (breakdownByGame[b].attempts - breakdownByGame[a].attempts))
+                    .map((game) => {
+                        const item = breakdownByGame[game];
+                        const latestAt = item.latestAt ? new Date(item.latestAt).toLocaleDateString() : '--';
+                        return `
+                            <div class="player-item" style="display:block;">
+                                <strong style="margin-bottom:10px;">${games[game]}</strong>
+                                <div class="stats-grid">
+                                    <div class="stat-tile"><div class="k">Attempts</div><div class="v">${item.attempts}</div></div>
+                                    <div class="stat-tile"><div class="k">Best</div><div class="v">${bestBetterLabel(game, item.best)}</div></div>
+                                    <div class="stat-tile"><div class="k">Average</div><div class="v">${bestBetterLabel(game, item.avg)}</div></div>
+                                </div>
+                                <div class="meta" style="margin-top:8px;">Latest: ${item.latest !== null ? bestBetterLabel(game, item.latest) : '--'} on ${latestAt}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            } else {
+                breakdownList.innerHTML = '<div class="empty-note">No per-game stats available yet.</div>';
+            }
+
             const recentActivityList = document.getElementById('recentActivityList');
             if (recentFive.length) {
                 recentActivityList.innerHTML = recentFive
@@ -358,11 +464,7 @@
                 recentActivityList.innerHTML = '<li class="empty-note">No recent activity yet.</li>';
             }
 
-            if (!Object.keys(bestByGame).length) {
-                document.getElementById('playerNotes').innerText = 'Play a few mini-games to populate your personal records, recent plays, and rankings.';
-            } else {
-                document.getElementById('playerNotes').innerText = 'This section can grow into a full player analytics view with badges, progress trends, and improvement tracking.';
-            }
+            // Player Notes section removed — no dynamic content to set here anymore.
         }
 
         loadProfile();
