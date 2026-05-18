@@ -532,6 +532,17 @@
             math: 's'
         };
 
+        const MG_RULES = {
+            sudoku: { descending: false },
+            zip: { descending: false },
+            cross: { descending: false },
+            simon: { descending: true },
+            tap: { descending: false },
+            reaction: { descending: false },
+            pairs: { descending: false },
+            math: { descending: false }
+        };
+
         function readMiniLeaderboards() {
             try {
                 return JSON.parse(localStorage.getItem(MINI_LB_KEY) || '{}');
@@ -550,8 +561,8 @@
         }
 
         function scoreSortFn(game) {
-            const rules = { sudoku: { descending: false }, zip: { descending: false }, cross: { descending: false }, simon: { descending: true }, tap: { descending: false }, reaction: { descending: false }, pairs: { descending: false }, math: { descending: false } }[game];
-            return (a, b) => (rules && rules.descending ? b.score - a.score : a.score - b.score);
+            const rules = MG_RULES[game] || { descending: false };
+            return (a, b) => (rules.descending ? b.score - a.score : a.score - b.score);
         }
 
         function entryKey(entry) {
@@ -720,18 +731,50 @@
                 const snapshot = await get(gameRef);
                 if (snapshot.exists()) {
                     const fbData = snapshot.val();
-                    const deletions = [];
-                    Object.keys(fbData || {}).forEach((scoreKey) => {
-                        const entry = fbData[scoreKey] || {};
-                        if (
-                            (entry.name || '').trim().toLowerCase() === normalizedName &&
-                            Number(entry.score) === numericScore &&
-                            Number(entry.timestamp || 0) === numericTimestamp
-                        ) {
-                            deletions.push(set(rtdbRef(rtdb, `leaderboards/${game}/scores/${scoreKey}`), null));
-                        }
+                    const rows = [];
+                    const keys = normalizeGameOrder(Object.keys(mergedData));
+                    const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
+
+                    gameKeys.forEach((game) => {
+                        // Deduplicate to one best entry per player to avoid showing every historical row
+                        const raw = (mergedData[game] || []).slice();
+                        const bestByPlayer = {};
+                        raw.forEach((entry) => {
+                            const pname = (entry.name || '').trim().toLowerCase();
+                            if (!pname) return;
+                            if (!bestByPlayer[pname]) {
+                                bestByPlayer[pname] = entry;
+                                return;
+                            }
+                            const curr = bestByPlayer[pname];
+                            const rules = MG_RULES[game] || { descending: false };
+                            const candidateScore = Number(entry.score || 0);
+                            const currScore = Number(curr.score || 0);
+                            const candidateIsBetter = rules.descending ? candidateScore > currScore : candidateScore < currScore;
+                            if (candidateIsBetter) bestByPlayer[pname] = entry;
+                        });
+
+                        let entries = Object.values(bestByPlayer).sort(scoreSortFn(game));
+                        // Limit how much data is shown in the admin list: when viewing all games, show top 5 per game; otherwise show top 50 for a single game
+                        entries = (filter === 'all') ? entries.slice(0, 5) : entries.slice(0, 50);
+
+                        entries.forEach((entry, idx) => {
+                            const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
+                            const unit = MINI_UNITS[game] || 'pts';
+                            const storageType = entry.source || 'localStorage';
+                            rows.push(`
+                                <tr style="border-top:1px solid #edf0fa;">
+                                    <td style="padding:10px; text-transform:capitalize;">${game}</td>
+                                    <td style="padding:10px;">${entry.name || 'Player'}</td>
+                                    <td style="padding:10px;">${entry.score} ${unit}</td>
+                                    <td style="padding:10px;">${dt}</td>
+                                    <td style="padding:10px;">
+                                        /* action buttons omitted */
+                                    </td>
+                                </tr>
+                            `);
+                        });
                     });
-                    await Promise.all(deletions);
                 }
             } catch (err) {
                 console.warn('RTDB cleanup failed:', err);
@@ -740,13 +783,11 @@
             try {
                 const data = readMiniLeaderboards();
                 if (Array.isArray(data[game])) {
-                    data[game] = data[game].filter((entry) => {
-                        return !(
-                            (entry.name || '').trim().toLowerCase() === normalizedName &&
-                            Number(entry.score) === numericScore &&
-                            Number(entry.ts || 0) === numericTimestamp
-                        );
-                    });
+                    data[game] = data[game].filter((entry) => !(
+                        (entry.name || '').trim().toLowerCase() === normalizedName &&
+                        Number(entry.score) === numericScore &&
+                        Number(entry.ts || entry.timestamp || 0) === numericTimestamp
+                    ));
                     writeMiniLeaderboards(data);
                 }
             } catch (err) {
