@@ -145,7 +145,7 @@
         .sudoku-grid {
             width: min(420px, 100%);
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 8px;
             margin-top: 12px;
         }
@@ -215,7 +215,7 @@
         .queen-board {
             width: min(420px, 100%);
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 6px;
             margin-top: 12px;
         }
@@ -274,7 +274,7 @@
                         </button>
                         <div class="launch-card-copy">
                             <h3>Mini Sudoku</h3>
-                            <p>4x4 Sudoku with row, column, and box rules.</p>
+                            <p>6x6 Sudoku with row, column, and 2x3 box rules.</p>
                         </div>
                     </div>
                     <button class="btn btn-primary" onclick="openGame('sudoku')">Play Sudoku</button>
@@ -286,7 +286,7 @@
                         </button>
                         <div class="launch-card-copy">
                             <h3>Zip Unscramble</h3>
-                            <p>Easy everyday words. 50 quick rounds.</p>
+                            <p>Words from varied fields. 10 quick rounds.</p>
                         </div>
                     </div>
                     <button class="btn btn-primary" onclick="openGame('zip')">Play Zip</button>
@@ -373,7 +373,7 @@
                 <div class="panel-top">
                     <div>
                         <h2>Mini Sudoku</h2>
-                        <p>Use numbers 1-4. No repeats in row, column, or 2x2 box.</p>
+                        <p>Use numbers 1-6. No repeats in row, column, or 2x3 box.</p>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <span id="sudokuMoves" class="stat-badge">Moves: 0</span>
@@ -430,7 +430,7 @@
                         <span id="pairsTimer" class="stat-badge">Time: 0.0s</span>
                     </div>
                 </div>
-                <div id="pairsBoard" style="display:grid;grid-template-columns:repeat(4,80px);gap:8px;justify-content:center;margin-top:12px;max-width:360px;margin-left:auto;margin-right:auto;"></div>
+                <div id="pairsBoard" style="display:grid;grid-template-columns:repeat(6, 1fr);gap:8px;justify-content:center;margin-top:12px;width:min(100%, 420px);margin-left:auto;margin-right:auto;"></div>
                 <div class="actions">
                     <button class="btn btn-primary" onclick="startPairs()">Start</button>
                     <button class="btn btn-outline" onclick="resetPairs()">Reset</button>
@@ -479,10 +479,10 @@
                 <div class="panel-top">
                     <div>
                         <h2>Zip Unscramble</h2>
-                        <p>Medium and easy words from general categories.</p>
+                        <p>Words from varied fields.</p>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
-                        <span id="zipProgress" class="stat-badge">Round 1 / 50</span>
+                        <span id="zipProgress" class="stat-badge">Round 1 / 10</span>
                         <span id="zipTimer" class="stat-badge">Time: 0.0s</span>
                     </div>
                 </div>
@@ -510,7 +510,7 @@
                         <p>LinkedIn-style ladder: each word must change exactly one letter.</p>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
-                        <span id="crossProgress" class="stat-badge">Round 1 / 50</span>
+                        <span id="crossProgress" class="stat-badge">Round 1 / 10</span>
                         <span id="crossTimer" class="stat-badge">Time: 0.0s</span>
                     </div>
                 </div>
@@ -542,7 +542,7 @@
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <span id="simonRound" class="stat-badge">Round: 0</span>
-                        <span id="simonMax" class="stat-badge">Max: 20</span>
+                        
                     </div>
                 </div>
                 <div style="margin-top:12px;">
@@ -577,7 +577,7 @@
                     </div>
                 </div>
                 <div style="text-align:center;margin-top:18px;">
-                    <button id="tapButton" class="btn btn-accent" style="width:160px;height:160px;border-radius:50%;font-size:1.4rem;">TAP</button>
+                    <button id="tapButton" class="btn btn-accent" style="touch-action: manipulation; user-select: none; width:160px;height:160px;border-radius:50%;font-size:1.4rem;">TAP</button>
                     <p id="tapCount" style="margin-top:12px;color:#344170;font-weight:700;">Taps: 0</p>
                 </div>
                 <div class="actions">
@@ -875,7 +875,7 @@
         Object.keys(stopwatchBadges).forEach((game) => resetStopwatch(game));
         renderAllLeaderboards();
 
-        window.openGame = (game) => {
+                window.openGame = (game) => {
             document.getElementById('emptyState').style.display = 'none';
             Object.keys(stopwatchBadges).forEach((g) => stopStopwatch(g));
             panels.forEach((panel) => {
@@ -883,7 +883,10 @@
                 if (el) el.classList.add('stage-hidden');
             });
             const target = document.getElementById(`panel-${game}`);
-            if (target) target.classList.remove('stage-hidden');
+            if (target) {
+                target.classList.remove('stage-hidden');
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
             resetStopwatch(game);
         };
 
@@ -906,33 +909,34 @@
         let sudokuPuzzle = [];
         let sudokuCurrent = [];
         let sudokuMoves = 0;
+        let sudokuSolutionShown = false;
 
-        function isSafeSudoku(grid, row, col, val) {
-            for (let c = 0; c < 4; c++) {
+                function isSafeSudoku(grid, row, col, val) {
+            for (let c = 0; c < 6; c++) {
                 if (grid[row][c] === val) return false;
             }
-            for (let r = 0; r < 4; r++) {
+            for (let r = 0; r < 6; r++) {
                 if (grid[r][col] === val) return false;
             }
             const boxRow = Math.floor(row / 2) * 2;
-            const boxCol = Math.floor(col / 2) * 2;
+            const boxCol = Math.floor(col / 3) * 3;
             for (let r = boxRow; r < boxRow + 2; r++) {
-                for (let c = boxCol; c < boxCol + 2; c++) {
+                for (let c = boxCol; c < boxCol + 3; c++) {
                     if (grid[r][c] === val) return false;
                 }
             }
             return true;
         }
 
-        function fillSudoku(grid, idx = 0) {
-            if (idx === 16) return true;
-            const row = Math.floor(idx / 4);
-            const col = idx % 4;
+                function fillSudoku(grid, idx = 0) {
+            if (idx === 36) return true;
+            const row = Math.floor(idx / 6);
+            const col = idx % 6;
             if (grid[row][col] !== 0) {
                 return fillSudoku(grid, idx + 1);
             }
 
-            const nums = shuffle([1, 2, 3, 4]);
+            const nums = shuffle([1, 2, 3, 4, 5, 6]);
             for (const num of nums) {
                 if (isSafeSudoku(grid, row, col, num)) {
                     grid[row][col] = num;
@@ -943,16 +947,16 @@
             return false;
         }
 
-        function countSudokuSolutions(grid, idx = 0, limit = 2) {
-            if (idx === 16) return 1;
-            const row = Math.floor(idx / 4);
-            const col = idx % 4;
+                function countSudokuSolutions(grid, idx = 0, limit = 2) {
+            if (idx === 36) return 1;
+            const row = Math.floor(idx / 6);
+            const col = idx % 6;
             if (grid[row][col] !== 0) {
                 return countSudokuSolutions(grid, idx + 1, limit);
             }
 
             let total = 0;
-            for (let num = 1; num <= 4; num++) {
+            for (let num = 1; num <= 6; num++) {
                 if (isSafeSudoku(grid, row, col, num)) {
                     grid[row][col] = num;
                     total += countSudokuSolutions(grid, idx + 1, limit);
@@ -966,21 +970,23 @@
             return total;
         }
 
-        function generateSudokuPuzzle() {
+                function generateSudokuPuzzle() {
             const full = [
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0]
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0]
             ];
             fillSudoku(full);
             sudokuSolution = cloneGrid(full);
             sudokuPuzzle = cloneGrid(full);
 
-            const removalOrder = shuffle(Array.from({ length: 16 }, (_, i) => i));
+            const removalOrder = shuffle(Array.from({ length: 36 }, (_, i) => i));
             for (const index of removalOrder) {
-                const r = Math.floor(index / 4);
-                const c = index % 4;
+                const r = Math.floor(index / 6);
+                const c = index % 6;
                 const saved = sudokuPuzzle[r][c];
                 sudokuPuzzle[r][c] = 0;
                 const testGrid = cloneGrid(sudokuPuzzle);
@@ -993,19 +999,20 @@
             sudokuCurrent = cloneGrid(sudokuPuzzle);
             sudokuMoves = 0;
             sudokuSolved = false;
+            sudokuSolutionShown = false;
             document.getElementById('sudokuMoves').innerText = 'Moves: 0';
         }
 
-        function renderSudoku() {
+                function renderSudoku() {
             const gridEl = document.getElementById('sudokuGrid');
             gridEl.innerHTML = '';
-            for (let r = 0; r < 4; r++) {
-                for (let c = 0; c < 4; c++) {
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 6; c++) {
                     const input = document.createElement('input');
                     input.className = 'sudoku-cell';
                     input.type = 'number';
                     input.min = '1';
-                    input.max = '4';
+                    input.max = '6';
                     if (sudokuPuzzle[r][c] !== 0) {
                         input.value = sudokuPuzzle[r][c];
                         input.disabled = true;
@@ -1014,7 +1021,7 @@
                         input.value = sudokuCurrent[r][c] === 0 ? '' : sudokuCurrent[r][c];
                         input.addEventListener('input', () => {
                             const val = Number(input.value);
-                            if (!Number.isInteger(val) || val < 1 || val > 4) {
+                            if (!Number.isInteger(val) || val < 1 || val > 6) {
                                 input.value = '';
                                 sudokuCurrent[r][c] = 0;
                                 return;
@@ -1035,21 +1042,23 @@
             return new Set(values).size !== values.length;
         }
 
-        function sudokuRulesValid(grid) {
-            for (let r = 0; r < 4; r++) {
+                function sudokuRulesValid(grid) {
+            for (let r = 0; r < 6; r++) {
                 if (hasDuplicates(grid[r])) return false;
             }
-            for (let c = 0; c < 4; c++) {
-                const col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+            for (let c = 0; c < 6; c++) {
+                const col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c], grid[4][c], grid[5][c]];
                 if (hasDuplicates(col)) return false;
             }
-            for (let br = 0; br < 4; br += 2) {
-                for (let bc = 0; bc < 4; bc += 2) {
+            for (let br = 0; br < 6; br += 2) {
+                for (let bc = 0; bc < 6; bc += 3) {
                     const box = [
                         grid[br][bc],
                         grid[br][bc + 1],
+                        grid[br][bc + 2],
                         grid[br + 1][bc],
-                        grid[br + 1][bc + 1]
+                        grid[br + 1][bc + 1],
+                        grid[br + 1][bc + 2]
                     ];
                     if (hasDuplicates(box)) return false;
                 }
@@ -1058,7 +1067,7 @@
         }
 
         function sudokuComplete(grid) {
-            return grid.every((row) => row.every((v) => v >= 1 && v <= 4));
+            return grid.every((row) => row.every((v) => v >= 1 && v <= 6));
         }
 
         window.checkSudoku = () => {
@@ -1079,6 +1088,10 @@
         };
 
         window.resetSudoku = () => {
+            if (sudokuSolutionShown) {
+                window.regenerateSudoku();
+                return;
+            }
             sudokuCurrent = cloneGrid(sudokuPuzzle);
             sudokuMoves = 0;
             sudokuSolved = false;
@@ -1096,65 +1109,56 @@
 
         window.showSudokuSolution = () => {
             sudokuCurrent = cloneGrid(sudokuSolution);
+            sudokuSolutionShown = true;
             renderSudoku();
-            alert('Solution shown. Click Regenerate for a new puzzle.');
+            alert('Solution shown. Click Reset or Regenerate for a new puzzle.');
         };
 
         generateSudokuPuzzle();
         renderSudoku();
 
         // Zip (harder words for stronger challenge)
-        const zipWords = [
+                const zipWords = [
             { word: 'QUANTUM', hint: 'Physics frontier' },
-            { word: 'ECLIPSE', hint: 'Celestial shadow event' },
-            { word: 'LABYRINTH', hint: 'A complex maze' },
-            { word: 'SYMPHONY', hint: 'Orchestral composition' },
-            { word: 'ENIGMATIC', hint: 'Mysterious' },
-            { word: 'PHOTON', hint: 'Particle of light' },
-            { word: 'NEBULA', hint: 'Interstellar cloud' },
             { word: 'GALAXY', hint: 'Huge star system' },
-            { word: 'ASTEROID', hint: 'Rock in space' },
-            { word: 'ORBITAL', hint: 'Relating to orbit' },
-            { word: 'PULSAR', hint: 'Spinning neutron star' },
-            { word: 'QUASAR', hint: 'Bright galactic nucleus' },
-            { word: 'GRAVITY', hint: 'Attractive force' },
-            { word: 'AURORA', hint: 'Polar light show' },
-            { word: 'PLASMA', hint: 'Ionized gas' },
-            { word: 'VORTEX', hint: 'Spinning flow' },
-            { word: 'COSMIC', hint: 'Relating to cosmos' },
-            { word: 'STELLAR', hint: 'Star-like' },
-            { word: 'PARADOX', hint: 'Seemingly contradictory' },
-            { word: 'EUPHORIA', hint: 'Extreme happiness' },
-            { word: 'ALCHEMY', hint: 'Magical chemistry' },
-            { word: 'ORCHESTRA', hint: 'Large musical ensemble' },
-            { word: 'HORIZON', hint: 'Skyline boundary' },
-            { word: 'TERRAIN', hint: 'Land surface' },
-            { word: 'GEYSER', hint: 'Hot spring spout' },
-            { word: 'CATHODE', hint: 'Negative electrode' },
-            { word: 'ANALOGUE', hint: 'Non-digital version' },
-            { word: 'METEORIC', hint: 'Fast and spectacular' },
-            { word: 'SPECTRUM', hint: 'Range of wavelengths' },
-            { word: 'EUPHONIC', hint: 'Pleasant sounding' },
-            { word: 'ASTRAL', hint: 'Relating to stars' },
-            { word: 'ORNAMENT', hint: 'Decorative object' },
-            { word: 'PARALLEL', hint: 'Side by side' },
-            { word: 'CIRCUITS', hint: 'Electrical pathways' },
-            { word: 'DYNAMICS', hint: 'Study of motion' },
-            { word: 'EPOCHAL', hint: 'Highly significant' },
-            { word: 'FATHOMED', hint: 'Understood deeply' },
-            { word: 'GALVANIC', hint: 'Electrically stimulated' },
-            { word: 'HEMISPHERE', hint: 'Half of a sphere' },
-            { word: 'IONIZATION', hint: 'Loss of electrons' },
-            { word: 'JUNCTION', hint: 'Where things meet' },
-            { word: 'KINETICS', hint: 'Study of motion' },
-            { word: 'LUMINANCE', hint: 'Measure of brightness' },
-            { word: 'MAGNETIC', hint: 'Relating to magnets' },
-            { word: 'NEXUS', hint: 'A connected group' },
-            { word: 'OXYGENATE', hint: 'Add oxygen to' },
-            { word: 'POLARITY', hint: 'Opposite properties' },
-            { word: 'RESONANCE', hint: 'Amplified vibration' },
-            { word: 'SYNTAX', hint: 'Arrangement of words' },
-            { word: 'THERMION', hint: 'Thermionic emission' }
+            { word: 'PYRAMID', hint: 'Ancient Egyptian tomb' },
+            { word: 'EMPIRE', hint: 'Large group of states' },
+            { word: 'KNIGHT', hint: 'Medieval warrior' },
+            { word: 'VIKING', hint: 'Norse seafarer' },
+            { word: 'CANYON', hint: 'Deep gorge' },
+            { word: 'GLACIER', hint: 'Slow moving ice mass' },
+            { word: 'VOLCANO', hint: 'Mountain with magma' },
+            { word: 'TUNDRA', hint: 'Cold treeless region' },
+            { word: 'SONNET', hint: '14-line poem' },
+            { word: 'CANVAS', hint: 'Painting surface' },
+            { word: 'THEATER', hint: 'Place for plays' },
+            { word: 'NOVEL', hint: 'Long fictional story' },
+            { word: 'MELODY', hint: 'Sequence of notes' },
+            { word: 'RHYTHM', hint: 'Pattern of sounds' },
+            { word: 'CHORUS', hint: 'Repeated part of a song' },
+            { word: 'GUITAR', hint: 'String instrument' },
+            { word: 'REFEREE', hint: 'Game official' },
+            { word: 'STADIUM', hint: 'Large sports arena' },
+            { word: 'MARATHON', hint: 'Long distance race' },
+            { word: 'TENNIS', hint: 'Racket sport' },
+            { word: 'RECIPE', hint: 'Cooking instructions' },
+            { word: 'DESSERT', hint: 'Sweet course' },
+            { word: 'SPICES', hint: 'Flavorings' },
+            { word: 'KITCHEN', hint: 'Cooking room' },
+            { word: 'BROWSER', hint: 'Web surfer tool' },
+            { word: 'NETWORK', hint: 'Connected devices' },
+            { word: 'ROBOTICS', hint: 'Study of robots' },
+            { word: 'SOFTWARE', hint: 'Computer programs' },
+            { word: 'DOLPHIN', hint: 'Smart marine mammal' },
+            { word: 'CHEETAH', hint: 'Fastest land animal' },
+            { word: 'PENGUIN', hint: 'Flightless bird' },
+            { word: 'ELEPHANT', hint: 'Large mammal with trunk' },
+            { word: 'DIAMOND', hint: 'Hard gemstone' },
+            { word: 'MYSTERY', hint: 'Unexplained event' },
+            { word: 'JOURNEY', hint: 'Long trip' },
+            { word: 'LANTERN', hint: 'Portable light' },
+            { word: 'CASTLE', hint: 'Fortified building' },
+            { word: 'VILLAGE', hint: 'Small community' }
         ];
 
         let zipOrder = shuffle(Array.from({ length: zipWords.length }, (_, i) => i));
@@ -1174,13 +1178,13 @@
             document.getElementById('zipHint').innerText = `Hint: ${current.hint}`;
             document.getElementById('zipLetters').innerText = scrambleWord(current.word);
             document.getElementById('zipInput').value = '';
-            document.getElementById('zipProgress').innerText = `Round ${zipRound + 1} / 50`;
+            document.getElementById('zipProgress').innerText = `Round ${zipRound + 1} / 10`;
             document.getElementById('zipScore').innerText = `Score: ${zipScore}`;
         }
 
         function advanceZipRound() {
             zipRound += 1;
-            if (zipRound >= 50) {
+            if (zipRound >= 10) {
                 stopStopwatch('zip');
                 addLeaderboardScore('zip', Number((getElapsedMs('zip') / 1000).toFixed(1)));
                 alert(`Set complete. Final score: ${zipScore}`);
@@ -1419,7 +1423,7 @@
 
         // Simon Says (memory sequence)
         const simonColors = ['red', 'green', 'blue', 'yellow'];
-        const simonMaxRounds = 20;
+        const simonMaxRounds = Infinity;
         let simonSequence = [];
         let simonIndex = 0;
         let simonRound = 0;
@@ -1447,7 +1451,7 @@
         window.startSimon = () => {
             simonSequence = [];
             simonRound = 0;
-            document.getElementById('simonMax').innerText = `Max: ${simonMaxRounds}`;
+            
             nextSimonRound();
         };
 
@@ -1594,8 +1598,8 @@
         let pairsFlips = 0;
         let pairsBusy = false;
 
-        function makePairsBoard() {
-            const symbols = ['★','▲','●','■','◆','❤','♫','☀︎'];
+                function makePairsBoard() {
+            const symbols = ['★','▲','●','■','◆','❤','♫','☀︎','☁','☂','✂','✎','✿','❆','♞','♛','✈','⚑'];
             const deck = shuffle(symbols.concat(symbols));
             pairsDeck = deck;
             pairsFound = 0;
@@ -1607,9 +1611,10 @@
             deck.forEach((s, i) => {
                 const btn = document.createElement('button');
                 btn.className = 'btn';
-                btn.style.width = '80px';
-                btn.style.height = '80px';
-                btn.style.fontSize = '1.6rem';
+                btn.style.width = '100%';
+                btn.style.aspectRatio = '1';
+                btn.style.fontSize = '1.4rem';
+                btn.style.padding = '0';
                 btn.dataset.index = i;
                 btn.innerText = '';
                 btn.onclick = () => flipPair(i, btn);
@@ -1617,6 +1622,9 @@
             });
             document.getElementById('pairsMoves').innerText = `Flips: ${pairsFlips}`;
         }
+        
+        // Auto-initialize memory pairs board
+        makePairsBoard();
 
         function flipPair(i, btn) {
             if (pairsBusy || pairsFlipped.includes(i) || btn.disabled) return;
@@ -1635,10 +1643,10 @@
                     buttons[b].disabled = true;
                     pairsFound += 1;
                     pairsFlipped = [];
-                    if (pairsFound === 8) {
+                    if (pairsFound === 18) {
                         stopStopwatch('pairs');
                         addLeaderboardScore('pairs', Number((getElapsedMs('pairs') / 1000).toFixed(1)));
-                        alert(`You cleared the 4x4 board in ${pairsFlips} flips!`);
+                        alert(`You cleared the 6x6 board in ${pairsFlips} flips!`);
                     }
                 } else {
                     pairsBusy = true;
@@ -1668,10 +1676,17 @@
         let currentAnswer = null;
         let mathTarget = 10;
 
-        function newMathQuestion() {
-            const a = 1 + Math.floor(Math.random() * 12);
-            const b = 1 + Math.floor(Math.random() * 12);
+                function newMathQuestion() {
             const op = ['+','-','*'][Math.floor(Math.random()*3)];
+            let a, b;
+            if (op === '*') {
+                a = 2 + Math.floor(Math.random() * 11);
+                b = 2 + Math.floor(Math.random() * 11);
+            } else {
+                a = 15 + Math.floor(Math.random() * 85);
+                b = 15 + Math.floor(Math.random() * 85);
+                if (op === '-' && a < b) [a, b] = [b, a];
+            }
             let q = `${a} ${op} ${b}`;
             if (op === '+') currentAnswer = a + b;
             if (op === '-') currentAnswer = a - b;
