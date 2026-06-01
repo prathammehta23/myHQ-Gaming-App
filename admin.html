@@ -272,9 +272,22 @@
             </div>
 
             <div class="dynamic-row" style="margin-bottom:12px;">
+                <input type="text" id="mgSearchName" placeholder="Search participant name">
+                <select id="mgViewLimit" style="max-width:220px;">
+                    <option value="5" selected>Show Latest 5</option>
+                    <option value="10">Show Latest 10</option>
+                    <option value="25">Show Latest 25</option>
+                    <option value="50">Show Latest 50</option>
+                    <option value="all">Show All</option>
+                </select>
+            </div>
+
+            <div class="dynamic-row" style="margin-bottom:12px;">
                 <input type="text" id="mgPlayerName" placeholder="Player name to remove from all mini-game leaderboards">
                 <button type="button" class="btn btn-outline" onclick="removeMiniPlayerEverywhere()">Remove Player</button>
             </div>
+
+            <p id="mgResultMeta" style="font-size:0.85rem; color:#64748b; margin-bottom:10px;">Showing latest entries.</p>
 
             <div style="overflow-x:auto; border:1px solid #e3e8fb; border-radius:10px;">
                 <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
@@ -530,7 +543,7 @@
         setAdminUiVisible(false);
 
         // Mini-Games Leaderboard Admin (local leaderboard moderation)
-        const MINI_LB_KEY = 'myhq_mini_game_leaderboards_v1';
+        const MINI_LB_KEY = 'myhq_mini_game_leaderboards';
         const MINI_UNITS = {
             sudoku: 's',
             zip: 's',
@@ -575,6 +588,13 @@
             return (a, b) => (rules.descending ? b.score - a.score : a.score - b.score);
         }
 
+        function getMiniViewLimit() {
+            const raw = document.getElementById('mgViewLimit')?.value || '5';
+            if (raw === 'all') return Number.POSITIVE_INFINITY;
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+        }
+
         function entryKey(entry) {
             return [
                 (entry.name || '').trim().toLowerCase(),
@@ -593,8 +613,12 @@
 
         window.loadMiniGamesAdmin = async () => {
             const filter = document.getElementById('mgGameFilter').value;
+            const searchName = (document.getElementById('mgSearchName')?.value || '').trim().toLowerCase();
+            const viewLimit = getMiniViewLimit();
             const tbody = document.getElementById('mgLeaderboardRows');
+            const meta = document.getElementById('mgResultMeta');
             tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">Loading leaderboards...</td></tr>';
+            if (meta) meta.innerText = 'Loading entries...';
             const mergedData = {};
             
             try {
@@ -658,36 +682,59 @@
                 console.warn('localStorage read failed:', err);
             }
 
-            const rows = [];
             const keys = normalizeGameOrder(Object.keys(mergedData));
             const gameKeys = filter === 'all' ? keys : keys.filter((k) => k === filter);
+            const flattenedEntries = [];
 
             gameKeys.forEach((game) => {
-                const entries = (mergedData[game] || []).slice().sort(scoreSortFn(game));
-                entries.forEach((entry, idx) => {
-                    const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
-                    const unit = MINI_UNITS[game] || 'pts';
-                    const storageType = entry.source || 'localStorage';
-                    rows.push(`
-                        <tr style="border-top:1px solid #edf0fa;">
-                            <td style="padding:10px; text-transform:capitalize;">${game}</td>
-                            <td style="padding:10px;">${entry.name || 'Player'}</td>
-                            <td style="padding:10px;">${entry.score} ${unit}</td>
-                            <td style="padding:10px;">${dt}</td>
-                            <td style="padding:10px;">
-                                <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("${storageType}", "${game}", ${JSON.stringify(entry.id)}, ${JSON.stringify(entry.name || 'Player')}, ${entry.score}, ${entry.ts || Date.now()})'>Remove</button>
-                            </td>
-                        </tr>
-                    `);
+                const entries = (mergedData[game] || []).slice();
+                entries.forEach((entry) => {
+                    flattenedEntries.push({ game, ...entry });
                 });
             });
 
+            const filteredEntries = flattenedEntries
+                .filter((entry) => {
+                    if (!searchName) return true;
+                    return (entry.name || '').toLowerCase().includes(searchName);
+                })
+                .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0));
+
+            const limitedEntries = Number.isFinite(viewLimit)
+                ? filteredEntries.slice(0, viewLimit)
+                : filteredEntries;
+
+            const rows = limitedEntries.map((entry) => {
+                const dt = entry.ts ? new Date(entry.ts).toLocaleString() : '--';
+                const unit = MINI_UNITS[entry.game] || 'pts';
+                const storageType = entry.source || 'localStorage';
+                return `
+                    <tr style="border-top:1px solid #edf0fa;">
+                        <td style="padding:10px; text-transform:capitalize;">${entry.game}</td>
+                        <td style="padding:10px;">${entry.name || 'Player'}</td>
+                        <td style="padding:10px;">${entry.score} ${unit}</td>
+                        <td style="padding:10px;">${dt}</td>
+                        <td style="padding:10px;">
+                            <button type="button" class="btn btn-outline" style="padding:6px 10px;" onclick='deleteMiniLeaderboardEntry("${storageType}", "${entry.game}", ${JSON.stringify(entry.id)}, ${JSON.stringify(entry.name || 'Player')}, ${entry.score}, ${entry.ts || Date.now()})'>Remove</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#666;">No leaderboard entries found for selected filter.</td></tr>';
+                const noResultMsg = searchName
+                    ? 'No participants matched your search for selected filter.'
+                    : 'No leaderboard entries found for selected filter.';
+                tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; color:#666;">${noResultMsg}</td></tr>`;
+                if (meta) meta.innerText = 'Showing 0 entries.';
                 return;
             }
 
             tbody.innerHTML = rows.join('');
+            if (meta) {
+                const limitText = Number.isFinite(viewLimit) ? `latest ${Math.min(viewLimit, filteredEntries.length)}` : 'all';
+                meta.innerText = `Showing ${limitedEntries.length} of ${filteredEntries.length} ${limitText === 'all' ? 'entries' : `(${limitText})`}.`;
+            }
         };
 
         window.deleteMiniLeaderboardEntry = async (storageType, game, identifier, name, score, ts) => {
@@ -940,6 +987,10 @@
                 alert('Invalid JSON.');
             }
         };
+
+        document.getElementById('mgGameFilter')?.addEventListener('change', () => loadMiniGamesAdmin());
+        document.getElementById('mgSearchName')?.addEventListener('input', () => loadMiniGamesAdmin());
+        document.getElementById('mgViewLimit')?.addEventListener('change', () => loadMiniGamesAdmin());
 
         loadMiniGamesAdmin();
 

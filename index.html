@@ -19,6 +19,23 @@
             padding: 24px;
         }
 
+        .lobby-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .lobby-logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            object-fit: cover;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+            flex-shrink: 0;
+        }
+
         .featured-event {
             position: relative;
             display: flex;
@@ -432,6 +449,12 @@
                 grid-template-columns: 1fr;
             }
 
+            .lobby-header {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
             .hero-aside {
                 grid-template-columns: 1fr;
             }
@@ -480,8 +503,10 @@
 
     <div class="container">
         <header class="text-center mb-4">
-            <img src="assets/logo.jpg" alt="myHQ Logo" style="width: 80px; height: 80px; border-radius: 20px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 20px;">
-            <p class="mono badge-accent mb-2">Welcome, <span id="playerName">Player</span></p>
+            <div class="lobby-header">
+                <img src="assets/logo.jpg" alt="myHQ Logo" class="lobby-logo">
+                <p class="mono badge-accent mb-2">Welcome, <span id="playerName">Player</span></p>
+            </div>
             <h1 class="mb-3">The Game Hub</h1>
         </header>
 
