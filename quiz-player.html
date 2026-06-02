@@ -38,7 +38,7 @@
     
     .quiz-question-header { display:flex; justify-content:space-between; gap:12px; align-items:start; flex-wrap:wrap; }
     .quiz-question-kicker { color:var(--primary); font-weight:800; text-transform:uppercase; letter-spacing:0.16em; font-size:0.75rem; }
-    .quiz-question-title { font-size:clamp(1.5rem,3vw,2.4rem); line-height:1.1; letter-spacing:-0.03em; color:var(--text-main); font-weight:800; max-width:980px; }
+    .quiz-question-title { font-size:clamp(1.5rem,3vw,2.4rem); line-height:1.1; letter-spacing:-0.03em; color:var(--text-main); font-weight:800; max-width:980px; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     .quiz-question-subtitle { color:var(--text-muted); font-size:1rem; margin-top:8px; }
     
     .quiz-timer { min-width:142px; padding:12px 16px; border-radius:18px; background:#eef3ff; border:1px solid var(--border); color:var(--text-main); text-align:center; }
@@ -61,8 +61,8 @@
     .quiz-option-flag.b { background:linear-gradient(135deg,#06b6d4,#5eead4); }
     .quiz-option-flag.c { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
     .quiz-option-flag.d { background:linear-gradient(135deg,#f43f5e,#fb7185); }
-    .quiz-option-copy strong { display:block; color:var(--text-main); font-size:1.1rem; margin-bottom:2px; }
-    .quiz-option-copy span { display:block; color:var(--text-muted); font-size:0.9rem; }
+    .quiz-option-copy strong { display:block; color:var(--text-main); font-size:1.1rem; margin-bottom:2px; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+    .quiz-option-copy span { display:block; color:var(--text-muted); font-size:0.9rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     
     .quiz-side-panel { padding:20px; display:grid; gap:16px; }
     .quiz-rail-card { background:#f8faff; border: 1px solid var(--border); border-radius:22px; padding:18px; }
@@ -70,13 +70,13 @@
     .quiz-rail-card .quiz-mini-note, .quiz-rail-card .text-muted { color:var(--text-muted); }
     
     .quiz-reveal-banner { padding:14px 16px; border-radius:18px; background:linear-gradient(135deg,rgba(0,188,212,0.08),rgba(30,78,216,0.08)); border:1px solid var(--border); color:var(--text-main); font-weight:700; margin-top: 15px; }
-    .quiz-reveal-answer { font-size:clamp(1.5rem,3vw,2.4rem); font-weight:800; color:var(--primary); letter-spacing:-0.03em; }
+    .quiz-reveal-answer { font-size:clamp(1.5rem,3vw,2.4rem); font-weight:800; color:var(--primary); letter-spacing:-0.03em; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     .quiz-score-pulse { animation:quizPulse 1.2s ease-in-out infinite; }
     
     /* Star Rating Slider styles (Scales) - Light Theme */
     .scales-input-container { display: grid; gap: 15px; margin-top: 10px; width: 100%; }
     .scales-input-row { display: grid; grid-template-columns: 1fr; gap: 6px; background: #ffffff; border: 1px solid var(--border); padding: 14px 18px; border-radius: 16px; }
-    .scales-input-row strong { color: var(--text-main); font-size: 0.95rem; }
+    .scales-input-row strong { color: var(--text-main); font-size: 0.95rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     .star-rating-buttons { display: flex; gap: 12px; margin-top: 6px; }
     .star-btn { font-size: 1.8rem; border: none; background: none; cursor: pointer; color: rgba(30, 78, 216, 0.08); transition: color 0.15s ease, transform 0.15s ease; padding: 0; }
     .star-btn:hover { transform: scale(1.15); }
@@ -85,7 +85,16 @@
     /* Rank preference Touch select dropdowns - Light Theme */
     .ranking-input-container { display: grid; gap: 10px; margin-top: 10px; width: 100%; }
     .ranking-input-row { display: grid; grid-template-columns: 1fr 125px; gap: 15px; align-items: center; background: #ffffff; border: 1px solid var(--border); padding: 14px 18px; border-radius: 16px; }
-    .ranking-input-row span { color: var(--text-main); font-weight: 700; font-size: 0.95rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .ranking-input-row span { color: var(--text-main); font-weight: 700; font-size: 0.95rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+
+    .word-cloud-item { max-width: 100%; overflow-wrap:anywhere; word-break:break-word; white-space:normal; text-align:center; }
+
+    .open-ended-card p,
+    .open-ended-card span {
+      overflow-wrap:anywhere;
+      word-break:break-word;
+      white-space:normal;
+    }
     .ranking-select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: #ffffff; color: var(--text-main); font-size: 0.9rem; font-weight: 700; }
 
     /* Emoji Avatar Selector CSS - Light Theme */
@@ -188,7 +197,7 @@
             </div>
           </div>
 
-          <div id="questionText" class="quiz-question-title" style="font-size: clamp(1.5rem, 3vw, 2.6rem); line-height: 1.2;">Waiting for host to launch the presentation.</div>
+          <div id="questionText" class="quiz-question-title" style="font-size: clamp(1.5rem, 3vw, 2.6rem); line-height: 1.2; overflow-wrap:anywhere; word-break:break-word; white-space:normal;">Waiting for host to launch the presentation.</div>
           <div class="quiz-meter"><div id="timerFill" class="quiz-meter-bar"></div></div>
           
           <!-- Interactive Input viewport -->
@@ -285,6 +294,30 @@
       revealSoundPlayed: false,
     };
 
+    const PLAYER_SESSION_KEY = 'myhq_quiz_player_session';
+
+    function savePlayerSession() {
+      if (!state.sessionId || !state.playerId) return;
+      localStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify({
+        sessionId: state.sessionId,
+        playerId: state.playerId,
+        playerName: state.playerName,
+        playerAvatar: state.playerAvatar
+      }));
+    }
+
+    function clearPlayerSession() {
+      localStorage.removeItem(PLAYER_SESSION_KEY);
+    }
+
+    function readPlayerSession() {
+      try {
+        return JSON.parse(localStorage.getItem(PLAYER_SESSION_KEY) || 'null');
+      } catch {
+        return null;
+      }
+    }
+
     const AVATARS = ['🐯', '🚀', '🐼', '🦖', '🍕', '🎉', '🐙', '🍦', '🍩', '🥑', '👽', '🍿', '🦄', '🐱', '🦊', '🦁'];
 
     // Setup Avatar Picker Grid
@@ -297,6 +330,7 @@
         ui.avatarPickerGrid.querySelectorAll('.avatar-item').forEach(item => item.classList.remove('selected'));
         el.classList.add('selected');
         state.playerAvatar = el.getAttribute('data-avatar');
+        savePlayerSession();
         playBeep(600, 0.05);
       });
     });
@@ -304,6 +338,14 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get('code')) document.getElementById('sessionCode').value = params.get('code');
     if (params.get('name')) document.getElementById('playerName').value = params.get('name');
+
+    const savedSession = readPlayerSession();
+    if (savedSession?.playerAvatar) {
+      state.playerAvatar = savedSession.playerAvatar;
+      ui.avatarPickerGrid.querySelectorAll('.avatar-item').forEach(item => {
+        item.classList.toggle('selected', item.getAttribute('data-avatar') === savedSession.playerAvatar);
+      });
+    }
 
     // Beep sound generators using Web Audio Context
     function playBeep(freq, dur) {
@@ -394,6 +436,7 @@
       const questionChanged = state.currentIndex !== index;
       const isReveal = snapshot?.state === 'reveal';
       const isLeaderboardState = snapshot?.state === 'leaderboard' || question?.type === 'leaderboard';
+      const savedAnswer = snapshot?.answers?.[index]?.[state.playerId] || null;
 
       state.currentIndex = Number.isInteger(index) ? index : null;
       state.currentQuestion = question;
@@ -407,6 +450,24 @@
         state.revealSoundPlayed = false;
         document.getElementById('answerState').innerText = 'Answered: No';
         document.getElementById('playerHint').innerText = 'Make a selection below to submit.';
+      }
+
+      if (savedAnswer && snapshot?.state === 'question') {
+        state.submitted = true;
+        if (typeof savedAnswer.answer === 'number') {
+          state.selectedAnswer = Number(savedAnswer.answer);
+        }
+        if (Array.isArray(savedAnswer.ratings)) {
+          state.scalesRatings = Object.fromEntries(savedAnswer.ratings.map((value, idx) => [idx, Number(value)]));
+        }
+        if (Array.isArray(savedAnswer.ranks)) {
+          state.rankingOrder = savedAnswer.ranks.reduce((accumulator, optIdx, rankIdx) => {
+            accumulator[Number(optIdx)] = Number(rankIdx);
+            return accumulator;
+          }, {});
+        }
+        document.getElementById('answerState').innerText = 'Answered: Yes';
+        document.getElementById('playerHint').innerText = 'Response already locked in. Refresh-safe resume restored.';
       }
 
       document.getElementById('quizTitle').innerText = snapshot?.title || 'myHQ Presentation';
@@ -630,9 +691,9 @@
 
             return `
               <div style="margin-top: 8px; display: grid; grid-template-columns: 32px 1fr 50px; gap: 12px; align-items: center; background: ${isCorrectOption ? 'rgba(34,197,94,0.06)' : isPlayerSelected ? 'rgba(30,78,216,0.04)' : '#ffffff'}; border: 1px solid ${isCorrectOption ? '#22c55e' : isPlayerSelected ? 'var(--primary)' : 'var(--border)'}; padding: 10px 14px; border-radius: 12px; transition: all 0.2s ease; width:100%;">
-                <span style="font-weight:800; color: ${isCorrectOption ? '#22c55e' : 'var(--text-main)'}; font-size:0.95rem;">${letter}</span>
-                <div style="flex:1;">
-                  <div style="font-weight:700; color:var(--text-main); font-size:0.9rem;">${option}</div>
+                <span style="font-weight:800; color: ${isCorrectOption ? '#22c55e' : 'var(--text-main)'}; font-size:0.95rem; align-self:start;">${letter}</span>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; color:var(--text-main); font-size:0.9rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; line-height:1.35;">${option}</div>
                   <div style="height: 6px; background: rgba(30,78,216,0.06); border-radius:999px; margin-top: 6px; overflow:hidden;">
                     <div style="height:100%; width: ${pct}%; background: linear-gradient(90deg, ${colors[idx][0]}, ${colors[idx][1]}); border-radius:inherit; transition: width 0.5s ease;"></div>
                   </div>
@@ -690,8 +751,8 @@
           ui.playerInputContainer.innerHTML = `
             <div style="width: 100%; display: grid; gap: 8px;">
               <h4 style="font-size: 0.95rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 6px; text-align:left;">Audience Word Cloud</h4>
-              <div class="word-cloud-container" style="min-height: 200px; padding: 20px; border-radius: 20px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; background: rgba(255,255,255,0.6); border: 1px solid var(--border);">
-                ${cloudHtml || '<div class="quiz-mini-note">No words submitted yet.</div>'}
+              <div class="word-cloud-container" style="min-height: 200px; padding: 20px; border-radius: 20px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; background: rgba(255,255,255,0.6); border: 1px solid var(--border); gap: 10px;">
+                ${cloudHtml || '<div class="quiz-mini-note" style="overflow-wrap:anywhere; word-break:break-word; white-space:normal;">No words submitted yet.</div>'}
               </div>
             </div>
           `;
@@ -825,7 +886,7 @@
               <div class="scales-row" style="display:grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; border-radius: 14px; background:#f8faff; border: 1px solid var(--border); width: 100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                   <span class="scales-label" style="font-size:0.9rem; font-weight:700;">${stmt}</span>
-                  <span style="font-weight: 800; color: var(--primary); font-family: 'Roboto Mono', monospace; font-size:0.95rem;">${avg > 0 ? avg.toFixed(1) + ' ★' : 'No ratings'}</span>
+                  <span style="font-weight: 800; color: var(--primary); font-family: 'Roboto Mono', monospace; font-size:0.95rem; white-space:normal; overflow-wrap:anywhere; word-break:break-word;">${avg > 0 ? avg.toFixed(1) + ' ★' : 'No ratings'}</span>
                 </div>
                 <div class="scales-slider-bg" style="height:10px; width:100%; background:rgba(30,78,216,0.06); border-radius:999px; position:relative; overflow:visible;">
                   <div class="scales-slider-fill" style="height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--primary), var(--accent)); width: ${pct}%;"></div>
@@ -945,7 +1006,7 @@
             return `
               <div class="ranking-row" style="padding: 10px 14px; border-radius: 14px; background:#f8faff; border: 1px solid var(--border); display:flex; align-items:center; gap:12px; width:100%;">
                 <div class="ranking-rank" style="width: 28px; height: 28px; font-size:0.85rem; border-radius: 8px; background:linear-gradient(135deg, var(--primary), var(--accent)); color:white; display:grid; place-items:center; font-weight:800;">${rankIdx + 1}</div>
-                <span class="ranking-label" style="font-size:0.85rem; flex: 0 0 110px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; text-align:left; font-weight:700;">${entry.text}</span>
+                <span class="ranking-label" style="font-size:0.85rem; flex: 1 1 auto; text-align:left; font-weight:700; overflow-wrap:anywhere; word-break:break-word; white-space:normal; line-height:1.35;">${entry.text}</span>
                 <div class="ranking-bar" style="height: 8px; flex:1; background:rgba(30,78,216,0.06); border-radius:999px; overflow:hidden;">
                   <div class="ranking-bar-fill" style="height:100%; background:linear-gradient(90deg, #7c3aed, #f43f5e); width: ${pct}%;"></div>
                 </div>
@@ -1062,13 +1123,14 @@
       state.sessionId = code;
       state.playerName = name;
       
-      state.playerId = await window.quiz.joinRoom(code, name, state.playerAvatar);
+      state.playerId = await window.quiz.joinRoom(code, name, state.playerAvatar, state.playerId);
       
       ui.joinCard.style.display = 'none';
       ui.quizRoot.style.display = 'grid';
       ui.reactionsBar.style.display = 'flex';
       ui.qaAskBtn.style.display = 'grid';
       setHeader({ state: 'lobby' });
+      savePlayerSession();
 
       const url = new URL(window.location.href);
       url.searchParams.set('code', code);
@@ -1083,6 +1145,7 @@
       if (state.sessionId && state.playerId) {
         window.quiz.leaveRoom(state.sessionId, state.playerId);
       }
+      clearPlayerSession();
       location.reload();
     });
 
@@ -1118,6 +1181,42 @@
         alert('Question submitted successfully!');
       }
     });
+
+    async function resumeSavedSession() {
+      const saved = readPlayerSession();
+      if (!saved?.sessionId || !saved?.playerName) return;
+
+      const code = String(saved.sessionId).trim().toUpperCase();
+      const playerName = String(saved.playerName).trim() || 'Anonymous Player';
+      const avatar = String(saved.playerAvatar || state.playerAvatar || '🐯');
+
+      document.getElementById('sessionCode').value = code;
+      document.getElementById('playerName').value = playerName;
+      state.playerAvatar = avatar;
+      ui.avatarPickerGrid.querySelectorAll('.avatar-item').forEach(item => {
+        item.classList.toggle('selected', item.getAttribute('data-avatar') === avatar);
+      });
+
+      try {
+        state.sessionId = code;
+        state.playerName = playerName;
+        state.playerId = saved.playerId || null;
+        state.playerId = await window.quiz.joinRoom(code, playerName, avatar, state.playerId);
+        savePlayerSession();
+
+        ui.joinCard.style.display = 'none';
+        ui.quizRoot.style.display = 'grid';
+        ui.reactionsBar.style.display = 'flex';
+        ui.qaAskBtn.style.display = 'grid';
+        setHeader({ state: 'lobby' });
+        watchRoom(code);
+      } catch (error) {
+        console.warn('Could not resume saved quiz session:', error);
+        clearPlayerSession();
+      }
+    }
+
+    resumeSavedSession();
   </script>
 </body>
 </html>

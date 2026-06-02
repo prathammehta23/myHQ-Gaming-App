@@ -155,7 +155,7 @@
     }
     
     .quiz-question-header { display:flex; justify-content:space-between; gap:12px; align-items:start; flex-wrap:wrap; }
-    .quiz-question-title { font-size:clamp(2rem,4.5vw,3.8rem); line-height:1.1; letter-spacing:-0.03em; color:var(--text-main); font-weight:900; max-width:980px; }
+    .quiz-question-title { font-size:clamp(2rem,4.5vw,3.8rem); line-height:1.1; letter-spacing:-0.03em; color:var(--text-main); font-weight:900; max-width:980px; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     .quiz-question-kicker { color:var(--primary); font-weight:800; text-transform:uppercase; letter-spacing:0.16em; font-size:0.85rem; }
     .quiz-question-subtitle { color:var(--text-muted); font-size:1.1rem; margin-top:8px; }
     
@@ -172,8 +172,8 @@
     .quiz-option-flag.b { background:linear-gradient(135deg,#06b6d4,#5eead4); }
     .quiz-option-flag.c { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
     .quiz-option-flag.d { background:linear-gradient(135deg,#f43f5e,#fb7185); }
-    .quiz-option-copy strong { display:block; color:var(--text-main); font-size:1.1rem; margin-bottom:2px; }
-    .quiz-option-copy span { display:block; color:var(--text-muted); font-size:0.9rem; }
+    .quiz-option-copy strong { display:block; color:var(--text-main); font-size:1.1rem; margin-bottom:2px; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+    .quiz-option-copy span { display:block; color:var(--text-muted); font-size:0.9rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     
     .quiz-reveal-banner { padding:14px 16px; border-radius:18px; background:linear-gradient(135deg,rgba(0,188,212,0.08),rgba(30,78,216,0.08)); border:1px solid var(--border); color:var(--text-main); font-weight:700; margin-top: 15px; }
     .quiz-reveal-answer { font-size:clamp(1.5rem,3vw,2.4rem); font-weight:800; color:var(--primary); letter-spacing:-0.03em; }
@@ -209,16 +209,16 @@
     
     /* MC Chart Styles - Rounded Glass Pillars with Glowing Highlight checkmarks */
     .mc-chart-container { display: flex; justify-content: space-around; align-items: flex-end; height: 330px; margin-top: 36px; border-bottom: 2px solid var(--border); padding-bottom: 12px; gap: 20px; position: relative; }
-    .mc-chart-bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 22%; height: 100%; justify-content: flex-end; }
+    .mc-chart-bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 22%; height: 100%; justify-content: flex-end; min-width:0; }
     .mc-chart-bar { width: 100%; border-radius: 20px 20px 0 0; background: linear-gradient(180deg, var(--color-start), var(--color-end)); transition: height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; box-shadow: 0 10px 25px rgba(23, 62, 168, 0.1); border: 1px solid rgba(255, 255, 255, 0.4); }
     .mc-chart-bar.correct-bar { border: 4px solid #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.4); }
     .mc-chart-bar.correct-bar::after { content: '✓'; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; background: #22c55e; color: white; border-radius: 50%; display: grid; place-items: center; font-size: 0.95rem; font-weight: 900; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     .mc-chart-val { position: absolute; top: -35px; width: 100%; text-align: center; font-weight: 800; font-size: 1.25rem; color: var(--text-main); font-family: 'Roboto Mono', monospace; }
-    .mc-chart-label { margin-top: 12px; font-weight: 700; text-align: center; color: var(--text-main); font-size: 0.95rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 100%; }
+    .mc-chart-label { margin-top: 12px; font-weight: 700; text-align: center; color: var(--text-main); font-size: 0.95rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; width: 100%; line-height:1.3; }
 
     /* Word Cloud Styles - glassmorphic tilted tags */
     .word-cloud-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px; min-height: 320px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border-radius: 28px; padding: 36px; border: 1px solid var(--border); box-shadow: inset 0 4px 20px rgba(23, 62, 168, 0.03); }
-    .word-cloud-item { font-weight: 800; transition: all 0.3s ease; animation: wordZoom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 6px 16px; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--border); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(23, 62, 168, 0.04); }
+    .word-cloud-item { font-weight: 800; transition: all 0.3s ease; animation: wordZoom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 6px 16px; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--border); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(23, 62, 168, 0.04); max-width: 100%; white-space: normal; overflow-wrap:anywhere; word-break:break-word; text-align:center; }
     .word-cloud-item:hover { transform: scale(1.12) rotate(var(--rand-rot, 2deg)) !important; box-shadow: 0 8px 20px rgba(23, 62, 168, 0.08); z-index: 10; }
     @keyframes wordZoom { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
@@ -233,7 +233,7 @@
     .scales-container { display: grid; gap: 16px; margin-top: 24px; }
     .scales-row { display: grid; grid-template-columns: 240px 1fr auto; gap: 24px; align-items: center; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); padding: 16px 22px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 6px 15px rgba(23, 62, 168, 0.03); transition: all 0.3s ease; }
     .scales-row:hover { background: #ffffff; transform: translateY(-2px); box-shadow: 0 10px 24px rgba(23, 62, 168, 0.06); }
-    .scales-label { font-weight: 700; color: var(--text-main); font-size: 1rem; }
+    .scales-label { font-weight: 700; color: var(--text-main); font-size: 1rem; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
     .scales-slider-bg { height: 16px; background: rgba(30, 78, 216, 0.06); border-radius: 999px; position: relative; overflow: visible; border: 1px solid rgba(30, 78, 216, 0.05); }
     .scales-slider-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.6s cubic-bezier(0.1, 0.8, 0.2, 1); }
     .scales-avg-node { position: absolute; top: -6px; width: 28px; height: 28px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); box-shadow: 0 4px 12px rgba(30, 78, 216, 0.25); transition: left 0.6s cubic-bezier(0.1, 0.8, 0.2, 1); transform: translateX(-50%); display: grid; place-items: center; font-size: 0.75rem; color: var(--primary); font-weight: 800; }
@@ -244,7 +244,7 @@
     .ranking-row { display: flex; align-items: center; gap: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 20px; padding: 16px 24px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; box-shadow: 0 6px 15px rgba(23, 62, 168, 0.03); }
     .ranking-row:hover { background: #ffffff; transform: scale(1.02); box-shadow: 0 10px 24px rgba(23, 62, 168, 0.06); }
     .ranking-rank { width: 40px; height: 40px; border-radius: 14px; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(30, 78, 216, 0.15); }
-    .ranking-label { font-weight: 700; color: var(--text-main); flex: 0 0 180px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 1.05rem; }
+    .ranking-label { font-weight: 700; color: var(--text-main); flex: 1 1 auto; text-overflow: initial; overflow: visible; white-space: normal; font-size: 1.05rem; overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
     .ranking-bar { flex: 1; height: 14px; background: rgba(30, 78, 216, 0.06); border-radius: 999px; overflow: hidden; border: 1px solid rgba(30, 78, 216, 0.05); }
     .ranking-bar-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #f43f5e); transition: width 0.6s cubic-bezier(0.1, 0.8, 0.2, 1); }
     .ranking-score { font-family: 'Roboto Mono', monospace; font-weight: 800; color: var(--primary); margin-left: 15px; font-size: 1.05rem; }
@@ -406,10 +406,11 @@
           </div>
           <div style="margin-top: 10px;">
             <input id="quizTitle" placeholder="Name your Room (e.g. Friday Trivia)" style="width: 100%; margin-bottom: 10px; font-weight: bold;">
+            <input id="roomCodeInput" placeholder="Optional room code (e.g. ASDF)" style="width: 100%; margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">
             <p class="quiz-mini-note">Control presentation results visibility and answers live.</p>
           </div>
           <div class="quiz-host-controls" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-            <button id="createSessionBtn" class="btn btn-primary" style="width: 100%;">Create Room</button>
+            <button id="createSessionBtn" class="btn btn-primary" style="width: 100%;">Open / Create Room</button>
             <button id="startNextBtn" class="btn btn-accent">Start Slide</button>
             <button id="endQuestionBtn" class="btn btn-outline">Reveal Answer</button>
             <button id="showLeaderboardBtn" class="btn btn-primary" style="display:none;">🏆 Show Leaderboard</button>
@@ -549,6 +550,42 @@
       winnersFanfarePlayed: false,
       renderedLobbyPlayers: new Set()
     };
+
+    const HOST_SESSION_KEY = 'myhq_quiz_host_session';
+
+    function saveHostSession() {
+      if (!state.sessionId) return;
+      localStorage.setItem(HOST_SESSION_KEY, JSON.stringify({
+        sessionId: state.sessionId,
+        roomCode: document.getElementById('roomCodeInput')?.value?.trim() || '',
+        roomTitle: document.getElementById('quizTitle')?.value?.trim() || ''
+      }));
+    }
+
+    function clearHostSession() {
+      localStorage.removeItem(HOST_SESSION_KEY);
+    }
+
+    function readHostSession() {
+      try {
+        return JSON.parse(localStorage.getItem(HOST_SESSION_KEY) || 'null');
+      } catch {
+        return null;
+      }
+    }
+
+    function resumeHostSession() {
+      const saved = readHostSession();
+      if (!saved?.sessionId) return;
+
+      state.sessionId = String(saved.sessionId).trim().toUpperCase();
+      if (saved.roomCode) document.getElementById('roomCodeInput').value = String(saved.roomCode).trim().toUpperCase();
+      if (saved.roomTitle) document.getElementById('quizTitle').value = saved.roomTitle;
+
+      ui.sessionCodeDisplay.innerText = state.sessionId;
+      ui.copyShareLinkBtn.style.display = 'inline-block';
+      wireRoom(state.sessionId);
+    }
 
     // Toggling creator input fields
     ui.slideType.addEventListener('change', () => {
@@ -1749,9 +1786,11 @@
 
       ui.createSessionBtn.addEventListener('click', async () => {
         const title = document.getElementById('quizTitle').value.trim() || 'myHQ Live Slide Presentation';
-        state.sessionId = await window.quiz.createRoom({ title });
+        const requestedCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+        state.sessionId = await window.quiz.createRoom({ title, code: requestedCode });
         ui.sessionCodeDisplay.innerText = state.sessionId;
         ui.copyShareLinkBtn.style.display = 'inline-block';
+        saveHostSession();
         wireRoom(state.sessionId);
       });
 
@@ -1897,9 +1936,12 @@
         if (!state.sessionId) return;
         if (confirm("Are you sure you want to reset all players, scores, answers, and Q&A questions in this Room?")) {
           await window.quiz.resetRoom(state.sessionId);
+          saveHostSession();
+          wireRoom(state.sessionId);
         }
       });
 
+      resumeHostSession();
       renderLiveState(null);
     });
   </script>

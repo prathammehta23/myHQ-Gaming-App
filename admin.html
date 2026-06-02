@@ -167,10 +167,11 @@
                     </div>
                     <div class="form-group">
                         <label>Platform Links</label>
+                        <p style="margin: 4px 0 10px; color:#64748b; font-size:0.85rem;">Optional. Add one or more platform names and links only if needed.</p>
                         <div id="platformLinks">
                             <div class="dynamic-row" style="margin-bottom: 10px;">
-                                <input type="text" class="p-platform" placeholder="Platform Name (e.g. Google Meet)" required>
-                                <input type="url" class="p-link" placeholder="Link URL" required>
+                                <input type="text" class="p-platform" placeholder="Platform Name (e.g. Google Meet)">
+                                <input type="url" class="p-link" placeholder="Link URL">
                             </div>
                         </div>
                         <button type="button" class="btn btn-outline" style="margin-bottom: 15px;" onclick="addPlatformLink()">+ Add Another Platform Link</button>
@@ -425,7 +426,7 @@
                 textRulesField.style.display = 'none';
                 document.getElementById('ecategory').required = true;
                 platformInputs.forEach((input) => {
-                    input.required = true;
+                    input.required = false;
                 });
             }
         };

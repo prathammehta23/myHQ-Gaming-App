@@ -46,7 +46,13 @@ async function resolveUniqueCode() {
 
 window.quiz = {
   createRoom: async (payload) => {
-    const sid = await resolveUniqueCode();
+    const requestedCode = String(payload?.code ?? payload?.sessionId ?? '').trim().toUpperCase();
+    const sid = requestedCode || await resolveUniqueCode();
+    const existing = requestedCode ? await getSession(sid) : null;
+
+    if (existing) {
+      return sid;
+    }
 
     const data = {
       title: payload.title || 'Interactive myHQ Room',
@@ -127,11 +133,16 @@ window.quiz = {
     return unsub;
   },
 
-  joinRoom: async (sid, name, avatar = '👤') => {
-    const playersRef = push(ref(rtdb, `${QUIZZES_ROOT}/${sid}/players`));
-    const pid = playersRef.key;
+  joinRoom: async (sid, name, avatar = '👤', playerId = null) => {
+    const pid = String(playerId || '').trim() || push(ref(rtdb, `${QUIZZES_ROOT}/${sid}/players`)).key;
+    const existingScoreSnap = await get(ref(rtdb, `${QUIZZES_ROOT}/${sid}/scores/${pid}`));
+
     await set(ref(rtdb, `${QUIZZES_ROOT}/${sid}/players/${pid}`), { name, avatar, joinedAt: Date.now() });
-    await update(ref(rtdb, `${QUIZZES_ROOT}/${sid}/scores/${pid}`), { name, avatar, score: 0 });
+    await update(ref(rtdb, `${QUIZZES_ROOT}/${sid}/scores/${pid}`), {
+      name,
+      avatar,
+      score: existingScoreSnap.exists() ? Number(existingScoreSnap.val()?.score || 0) : 0
+    });
     return pid;
   },
 
