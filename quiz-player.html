@@ -110,9 +110,46 @@
     .reaction-emoji-btn:hover { transform: scale(1.25); background: rgba(30, 78, 216, 0.05); }
     .reaction-emoji-btn:active { transform: scale(0.95); }
 
-    /* Ask Host Q&A Floating Badge & Modal CSS - Light Theme */
-    .floating-ask-btn { position: fixed; bottom: 84px; right: 20px; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #a78bfa); box-shadow: 0 6px 18px rgba(124,58,237,0.25); display: grid; place-items: center; cursor: pointer; z-index: 1000; transition: transform 0.2s ease; border: none; outline: none; }
-    .floating-ask-btn:hover { transform: scale(1.08); }
+    .reaction-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 92px;
+      transform: translateX(-50%) translateY(12px);
+      background: rgba(17, 24, 39, 0.92);
+      color: white;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      z-index: 1200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
+    }
+
+    .reaction-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .floating-reaction-burst {
+      position: fixed;
+      left: 50%;
+      bottom: 138px;
+      transform: translateX(-50%);
+      font-size: 2.1rem;
+      font-weight: 800;
+      pointer-events: none;
+      z-index: 1199;
+      animation: floatReactionBurst 0.9s ease-out forwards;
+    }
+
+    @keyframes floatReactionBurst {
+      0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.7); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-42px) scale(1.12); }
+    }
 
     /* Custom Input visual overlay */
     .results-hidden-overlay { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 220px; background: #f8faff; border-radius: 20px; border: 1px solid var(--border); padding: 30px; text-align: center; width:100%; box-shadow: 0 8px 20px rgba(30,78,216,0.04); }
@@ -156,10 +193,9 @@
       <div class="quiz-hero-panel">
         <div class="quiz-kicker">Live presentation</div>
         <div class="quiz-hero-title">Interactive. Engaging. In Real-Time.</div>
-        <p class="quiz-hero-copy">Join with the short code, select your avatar emoji, submit responses, and see graphs update live. Chat directly with the host using Q&A and express yourself with reactions!</p>
+        <p class="quiz-hero-copy">Join with the short code, select your avatar emoji, submit responses, and see graphs update live. Express yourself with reactions while the host runs the room.</p>
         <div class="quiz-session-badges" style="margin-top:18px;">
           <span class="quiz-badge">Real-time charts</span>
-          <span class="quiz-badge">Q&A submits</span>
           <span class="quiz-badge">Live floating emojis</span>
         </div>
       </div>
@@ -234,25 +270,7 @@
     <button class="reaction-emoji-btn" data-reaction="party">🎉</button>
   </footer>
 
-  <!-- Q&A Floating Ask Presenter Button -->
-  <button class="floating-ask-btn" id="qaAskBtn" style="display: none;" title="Ask host a question">
-    <span style="font-size: 1.5rem;">❓</span>
-  </button>
-
-  <!-- Ask Question modal -->
-  <div class="modal-overlay" id="qaModal" style="display: none;">
-    <div class="modal-content">
-      <h2>Ask the Presenter</h2>
-      <p class="quiz-mini-note" style="margin-bottom: 15px;">Type a question below. It will appear on the presenter's Q&A screen.</p>
-      <div class="form-group">
-        <textarea id="qaQuestionText" rows="3" placeholder="Enter question for the host..."></textarea>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-primary" id="qaSubmitBtn">Submit</button>
-        <button class="btn btn-outline" id="qaCancelBtn">Cancel</button>
-      </div>
-    </div>
-  </div>
+  <div class="reaction-toast" id="reactionToast" aria-live="polite"></div>
 
   <script type="module">
     import { playSuccessSound } from './js/sounds.js';
@@ -268,12 +286,8 @@
       optionList: document.getElementById('optionList'),
       avatarPickerGrid: document.getElementById('avatarPickerGrid'),
       reactionsBar: document.getElementById('reactionsBar'),
-      qaAskBtn: document.getElementById('qaAskBtn'),
-      qaModal: document.getElementById('qaModal'),
-      qaSubmitBtn: document.getElementById('qaSubmitBtn'),
-      qaCancelBtn: document.getElementById('qaCancelBtn'),
-      qaQuestionText: document.getElementById('qaQuestionText'),
-      playerInputContainer: document.getElementById('playerInputContainer')
+      playerInputContainer: document.getElementById('playerInputContainer'),
+      reactionToast: document.getElementById('reactionToast')
     };
 
     const state = {
@@ -361,6 +375,42 @@
         osc.start();
         osc.stop(audioCtx.currentTime + dur);
       } catch (e) {}
+    }
+
+    function showReactionFeedback(type) {
+      const emojiMap = {
+        heart: '❤️',
+        thumbsup: '👍',
+        laugh: '😂',
+        wow: '😮',
+        party: '🎉'
+      };
+
+      const labelMap = {
+        heart: 'Love sent',
+        thumbsup: 'Nice!',
+        laugh: 'Haha!',
+        wow: 'Wow!',
+        party: 'Party time!'
+      };
+
+      const emoji = emojiMap[type] || '❤️';
+      const label = labelMap[type] || 'Reaction sent';
+
+      if (ui.reactionToast) {
+        ui.reactionToast.innerText = `${emoji} ${label}`;
+        ui.reactionToast.classList.add('show');
+        clearTimeout(window.__reactionToastTimer);
+        window.__reactionToastTimer = setTimeout(() => {
+          ui.reactionToast.classList.remove('show');
+        }, 1200);
+      }
+
+      const burst = document.createElement('div');
+      burst.className = 'floating-reaction-burst';
+      burst.innerText = emoji;
+      document.body.appendChild(burst);
+      setTimeout(() => burst.remove(), 900);
     }
 
     function stopTimer() {
@@ -1128,7 +1178,6 @@
       ui.joinCard.style.display = 'none';
       ui.quizRoot.style.display = 'grid';
       ui.reactionsBar.style.display = 'flex';
-      ui.qaAskBtn.style.display = 'grid';
       setHeader({ state: 'lobby' });
       savePlayerSession();
 
@@ -1158,28 +1207,8 @@
         playBeep(988, 0.05); // high pitch pop sound
         btn.style.transform = 'scale(1.4)';
         setTimeout(() => { btn.style.transform = ''; }, 150);
+        showReactionFeedback(type);
       });
-    });
-
-    // Floating Q&A modal controls
-    ui.qaAskBtn.addEventListener('click', () => {
-      ui.qaQuestionText.value = '';
-      ui.qaModal.style.display = 'flex';
-    });
-
-    ui.qaCancelBtn.addEventListener('click', () => {
-      ui.qaModal.style.display = 'none';
-    });
-
-    ui.qaSubmitBtn.addEventListener('click', async () => {
-      const text = ui.qaQuestionText.value.trim();
-      if (!text) return alert('Please enter a question to submit!');
-
-      if (state.sessionId && state.playerName) {
-        await window.quiz.submitQaQuestion(state.sessionId, state.playerName, state.playerAvatar, text);
-        ui.qaModal.style.display = 'none';
-        alert('Question submitted successfully!');
-      }
     });
 
     async function resumeSavedSession() {
@@ -1207,7 +1236,6 @@
         ui.joinCard.style.display = 'none';
         ui.quizRoot.style.display = 'grid';
         ui.reactionsBar.style.display = 'flex';
-        ui.qaAskBtn.style.display = 'grid';
         setHeader({ state: 'lobby' });
         watchRoom(code);
       } catch (error) {

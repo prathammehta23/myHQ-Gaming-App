@@ -415,7 +415,8 @@
             <button id="endQuestionBtn" class="btn btn-outline">Reveal Answer</button>
             <button id="showLeaderboardBtn" class="btn btn-primary" style="display:none;">🏆 Show Leaderboard</button>
             <button id="toggleResultsBtn" class="btn btn-outline" style="display:none; align-items:center; gap:6px; justify-content:center;">👁️ <span id="toggleResultsText">Hide Results</span></button>
-            <button id="resetQuizBtn" class="btn btn-outline">Reset Room</button>
+            <button id="resetQuizBtn" class="btn btn-outline">Reset Room (Keep Questions)</button>
+            <p class="quiz-mini-note" style="margin: 0; width: 100%;">Clears players, scores, answers, reactions, and Q&A without deleting slides.</p>
           </div>
         </div>
 
@@ -1934,7 +1935,7 @@
 
       ui.resetQuizBtn.addEventListener('click', async () => {
         if (!state.sessionId) return;
-        if (confirm("Are you sure you want to reset all players, scores, answers, and Q&A questions in this Room?")) {
+        if (confirm("Reset this room for a fresh group? Questions will stay, but players, scores, answers, reactions, and Q&A will be cleared.")) {
           await window.quiz.resetRoom(state.sessionId);
           saveHostSession();
           wireRoom(state.sessionId);
