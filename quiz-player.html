@@ -127,7 +127,7 @@
   <main class="quiz-player-shell">
     <header class="quiz-app-header">
       <div class="quiz-brand">
-        <img src="assets/logo.jpg" alt="myHQ" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <a href="index.html" title="Back to Arcade"><img src="assets/logo.jpg" alt="myHQ" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></a>
         <div class="quiz-brand-copy">
           <strong>myHQ Live Quiz</strong>
           <span>Fast-paced host-led game show</span>
@@ -292,11 +292,21 @@
     if (params.get('name')) document.getElementById('playerName').value = params.get('name');
 
     const savedSession = readPlayerSession();
-    if (savedSession?.playerAvatar) {
-      state.playerAvatar = savedSession.playerAvatar;
-      ui.avatarPickerGrid.querySelectorAll('.avatar-item').forEach(item => {
-        item.classList.toggle('selected', item.getAttribute('data-avatar') === savedSession.playerAvatar);
-      });
+    if (savedSession) {
+      if (savedSession.playerAvatar) {
+        state.playerAvatar = savedSession.playerAvatar;
+        ui.avatarPickerGrid.querySelectorAll('.avatar-item').forEach(item => {
+          item.classList.toggle('selected', item.getAttribute('data-avatar') === savedSession.playerAvatar);
+        });
+      }
+      if (savedSession.playerId) state.playerId = savedSession.playerId;
+      if (savedSession.playerName) {
+        state.playerName = savedSession.playerName;
+        document.getElementById('playerName').value = savedSession.playerName;
+      }
+      if (savedSession.sessionId) {
+        document.getElementById('sessionCode').value = savedSession.sessionId;
+      }
     }
 
     // Beep sound generators using Web Audio Context
@@ -504,6 +514,7 @@
                 <span style="font-size:1.2rem; font-weight:800; color:var(--primary);">${playerScore} pts</span>
               </div>
             </div>
+            <a href="index.html" class="btn btn-primary" style="margin-top: 10px; width: 100%; text-decoration: none;">🎮 Back to Arcade Hub</a>
           </div>
         `;
         ui.playerInputContainer.innerHTML = '';
