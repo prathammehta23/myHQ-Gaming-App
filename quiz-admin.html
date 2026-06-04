@@ -278,15 +278,6 @@
     .present-leaderboard-name { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
     .present-leaderboard-score { font-family: 'Roboto Mono', monospace; font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-left: auto; }
 
-    /* Reactions Receiver CSS */
-    @keyframes floatUp {
-      0% { transform: translateY(0) scale(0.6) rotate(0deg); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translateY(-520px) translateX(var(--wobble, 0px)) scale(1.1) rotate(var(--rotate, 0deg)); opacity: 0; }
-    }
-    .floating-reaction { position: absolute; bottom: 20px; font-size: 2.6rem; animation: floatUp 2.5s ease-out forwards; pointer-events: none; z-index: 999; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); }
-
     /* Q&A Host Drawer CSS - Light Theme */
     .qa-drawer-toggle { position: fixed; bottom: 30px; right: 30px; width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); box-shadow: 0 10px 25px rgba(0, 188, 212, 0.3); display: grid; place-items: center; cursor: pointer; z-index: 1500; transition: transform 0.2s ease, box-shadow 0.2s ease; border: none; outline: none; }
     .qa-drawer-toggle:hover { transform: scale(1.08); box-shadow: 0 12px 30px rgba(0, 188, 212, 0.4); }
@@ -416,7 +407,7 @@
             <button id="showLeaderboardBtn" class="btn btn-primary" style="display:none;">🏆 Show Leaderboard</button>
             <button id="toggleResultsBtn" class="btn btn-outline" style="display:none; align-items:center; gap:6px; justify-content:center;">👁️ <span id="toggleResultsText">Hide Results</span></button>
             <button id="resetQuizBtn" class="btn btn-outline">Reset Room (Keep Questions)</button>
-            <p class="quiz-mini-note" style="margin: 0; width: 100%;">Clears players, scores, answers, reactions, and Q&A without deleting slides.</p>
+            <p class="quiz-mini-note" style="margin: 0; width: 100%;">Clears players, scores, answers, and Q&A without deleting slides.</p>
           </div>
         </div>
 
@@ -546,11 +537,14 @@
       session: null,
       revealClearTimeout: null,
       timerTickInterval: null,
-      renderedReactions: new Set(),
       editingIndex: null, // Tracks active index slide being edited
       winnersFanfarePlayed: false,
       renderedLobbyPlayers: new Set()
     };
+
+    function isDeckLocked(snapshot = state.session) {
+      return Boolean(snapshot && snapshot.state !== 'lobby' && snapshot.state !== 'finished');
+    }
 
     const HOST_SESSION_KEY = 'myhq_quiz_host_session';
 
@@ -752,6 +746,10 @@
       if (!question) return;
 
       const isPresenting = ui.presenterStage.classList.contains('fullscreen-present');
+      if (!isPresenting && isDeckLocked()) {
+        alert('Prepare the slide deck before starting the quiz. Deck editing is locked while the room is live.');
+        return;
+      }
       if (isPresenting) {
         playBeep(700, 0.05);
         await window.quiz.startQuestion(state.sessionId, index);
@@ -779,6 +777,7 @@
 
     window.deleteHostQuestion = async (index) => {
       if (!state.sessionId) return;
+      if (isDeckLocked()) return;
       if (confirm("Are you sure you want to delete this slide from the presentation?")) {
         await window.quiz.deleteQuestion(state.sessionId, index);
         playBeep(600, 0.08);
@@ -787,6 +786,7 @@
 
     window.moveHostQuestion = async (index, dir) => {
       if (!state.sessionId) return;
+      if (isDeckLocked()) return;
       const targetIdx = index + dir;
       if (targetIdx >= 0 && targetIdx < state.questions.length) {
         await window.quiz.reorderQuestions(state.sessionId, index, targetIdx);
@@ -835,7 +835,7 @@
           </style>
           <div style="text-align:center; padding: 20px 0;">
             <div style="font-size: 1.4rem; font-weight:800; color:var(--primary); margin-bottom: 20px; font-family:'Roboto Mono', monospace; letter-spacing: 2px;">
-              JOIN AT: QUIZ-PLAYER.HTML USING CODE 
+              JOIN USING THE FOLLOWING CODE 
               <div style="font-size: 3.5rem; color:var(--text-main); font-weight:900; margin-top:8px; letter-spacing:8px; text-shadow:0 4px 10px rgba(30,78,216,0.12);">${state.sessionId || '----'}</div>
             </div>
             <h4 style="margin-top: 30px; font-size: 1.1rem; color: var(--text-muted); text-align: left; border-bottom: 1px solid var(--border); padding-bottom:8px;">Connected Participants (${pKeys.length})</h4>
@@ -1168,7 +1168,7 @@
       const currentRound = snapshot.revealQuestionIndex;
       
       if (ui.lastLeaderboardRound === currentRound && ui.visualizerContainer.querySelector('.present-leaderboard-container')) {
-        return; // Prevent interrupting animation if a reaction updates the DB
+        return; // Prevent interrupting the score roll-up animation once the leaderboard is visible
       }
       ui.lastLeaderboardRound = currentRound;
 
@@ -1377,49 +1377,6 @@
       `;
     }
 
-    // Reaction Emojis Receiver
-    function receiveLiveReactions(reactions) {
-      if (!reactions) return;
-      
-      const rKeys = Object.keys(reactions);
-      rKeys.forEach(k => {
-        if (state.renderedReactions.has(k)) return;
-        
-        const reaction = reactions[k];
-        if (Date.now() - Number(reaction.ts || 0) < 5000) {
-          triggerFloatingEmoji(reaction.type);
-        }
-        state.renderedReactions.add(k);
-      });
-    }
-
-    function triggerFloatingEmoji(type) {
-      const emojiMap = {
-        heart: '❤️',
-        thumbsup: '👍',
-        laugh: '😂',
-        wow: '😮',
-        party: '🎉'
-      };
-
-      const emoji = emojiMap[type] || '❤️';
-      const el = document.createElement('div');
-      el.className = 'floating-reaction';
-      el.innerText = emoji;
-      
-      const xOffset = Math.random() * 80 + 10;
-      const wobble = (Math.random() * 120 - 60) + 'px';
-      const rotate = (Math.random() * 40 - 20) + 'deg';
-
-      el.style.left = xOffset + '%';
-      el.style.setProperty('--wobble', wobble);
-      el.style.setProperty('--rotate', rotate);
-
-      ui.presenterStage.appendChild(el);
-
-      setTimeout(() => el.remove(), 2500);
-    }
-
     // Q&A audience drawer renderer
     function renderQa(qaData) {
       if (!qaData) {
@@ -1457,6 +1414,7 @@
     };
 
     function renderQueue() {
+      const deckLocked = isDeckLocked();
       let html = '';
       if (state.questions.length === 0) {
         html = '<div class="quiz-mini-note">No slides in the deck yet.</div>';
@@ -1473,9 +1431,9 @@
                   <span class="quiz-badge"><strong>${question.time || 15}s</strong></span>
                 </div>
                 <div class="ppt-thumbnail-actions">
-                  <button title="Move Up" ${index === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); window.moveHostQuestion(${index}, -1)">⬆️</button>
-                  <button title="Move Down" ${index === state.questions.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); window.moveHostQuestion(${index}, 1)">⬇️</button>
-                  <button title="Delete" style="color:#ff3b30;" onclick="event.stopPropagation(); window.deleteHostQuestion(${index})">🗑️</button>
+                  <button title="Move Up" ${deckLocked || index === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); window.moveHostQuestion(${index}, -1)">⬆️</button>
+                  <button title="Move Down" ${deckLocked || index === state.questions.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); window.moveHostQuestion(${index}, 1)">⬇️</button>
+                  <button title="Delete" style="color:#ff3b30;" ${deckLocked ? 'disabled' : ''} onclick="event.stopPropagation(); window.deleteHostQuestion(${index})">🗑️</button>
                 </div>
               </div>
               <div class="ppt-thumbnail-slide">
@@ -1561,6 +1519,7 @@
         ui.startNextBtn.innerText = "Start Slide";
         ui.endQuestionBtn.style.display = 'none';
         ui.showLeaderboardBtn.style.display = 'none';
+        ui.addNewSlideBtn.disabled = false;
         return;
       }
 
@@ -1603,6 +1562,8 @@
         ui.endQuestionBtn.style.display = 'none';
         ui.showLeaderboardBtn.style.display = 'none';
       }
+
+      ui.addNewSlideBtn.disabled = isDeckLocked(snapshot);
 
       // 2. Fullscreen Presenter Dock Toolbar Buttons
       if (snapshot.state === 'lobby') {
@@ -1671,6 +1632,10 @@
       // If we are actively editing a draft, do NOT overwrite the central canvas with live state updates.
       // We only update the sidebars (queue and controls).
       const isPresenting = ui.presenterStage.classList.contains('fullscreen-present');
+      if (isDeckLocked(snapshot)) {
+        document.getElementById('slideSettingsPanel').style.display = 'none';
+        state.editingIndex = null;
+      }
       if (state.editingIndex !== null && !isPresenting) {
         renderQueue();
         updateHostControlButtons(snapshot);
@@ -1721,10 +1686,6 @@
       renderQueue();
 
       // Render Floating Emojis
-      if (snapshot?.reactions) {
-        receiveLiveReactions(snapshot.reactions);
-      }
-
       // Render Audience Q&A Drawer
       renderQa(snapshot?.qa);
 
@@ -1753,21 +1714,30 @@
 
     function wireRoom(sessionId) {
       if (state.unsubscribe) state.unsubscribe();
+      let rAF = null;
+      let pendingSnapshot = null;
       state.unsubscribe = window.quiz.onRoomUpdate(sessionId, (snapshot) => {
-        state.session = snapshot;
-        if (snapshot?.questions) {
-          state.questions = snapshot.questions;
-          if (state.editingIndex !== null && state.editingIndex >= state.questions.length) {
-            state.editingIndex = state.questions.length > 0 ? state.questions.length - 1 : null;
-            if (state.editingIndex !== null) window.selectHostQuestion(state.editingIndex);
-            else clearComposer();
-          }
-        } else {
-          state.questions = [];
-          state.editingIndex = null;
-          clearComposer();
+        pendingSnapshot = snapshot;
+        if (!rAF) {
+          rAF = requestAnimationFrame(() => {
+            rAF = null;
+            const snap = pendingSnapshot;
+            state.session = snap;
+            if (snap?.questions) {
+              state.questions = snap.questions;
+              if (state.editingIndex !== null && state.editingIndex >= state.questions.length) {
+                state.editingIndex = state.questions.length > 0 ? state.questions.length - 1 : null;
+                if (state.editingIndex !== null) window.selectHostQuestion(state.editingIndex);
+                else clearComposer();
+              }
+            } else {
+              state.questions = [];
+              state.editingIndex = null;
+              clearComposer();
+            }
+            renderLiveState(snap);
+          });
         }
-        renderLiveState(snapshot);
       });
     }
 
@@ -1808,7 +1778,7 @@
       // Real-time Canvas Auto-Save Engine
       let saveTimeout;
       const autoSaveDraft = () => {
-        if (state.editingIndex === null || !state.sessionId) return;
+        if (state.editingIndex === null || !state.sessionId || isDeckLocked()) return;
         clearTimeout(saveTimeout);
         
         const type = ui.slideType.value;
@@ -1895,6 +1865,10 @@
           alert('Please create a Room first.');
           return;
         }
+        if (isDeckLocked()) {
+          alert('Prepare the slide deck before starting the quiz.');
+          return;
+        }
 
         const newSlide = {
           type: 'multiple-choice',
@@ -1935,7 +1909,7 @@
 
       ui.resetQuizBtn.addEventListener('click', async () => {
         if (!state.sessionId) return;
-        if (confirm("Reset this room for a fresh group? Questions will stay, but players, scores, answers, reactions, and Q&A will be cleared.")) {
+        if (confirm("Reset this room for a fresh group? Questions will stay, but players, scores, answers, and Q&A will be cleared.")) {
           await window.quiz.resetRoom(state.sessionId);
           saveHostSession();
           wireRoom(state.sessionId);

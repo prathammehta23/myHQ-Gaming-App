@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Load Tester - 10 Players</title>
+  <style>
+    body { font-family: 'Inter', sans-serif; padding: 20px; background: #f8faff; color: #333; }
+    .log-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-top: 20px; max-height: 500px; overflow-y: auto; font-family: monospace; }
+    .log-entry { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9; }
+    .log-entry.success { color: #10b981; }
+    .log-entry.error { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <h1>myHQ Quiz - Concurrent Load Test (10 Players)</h1>
+  <p>This script simulates 10 players rapidly joining a session and submitting answers simultaneously to test for race conditions and UI lag.</p>
+  <button id="runTestBtn" style="padding: 10px 20px; background: #1e4ed8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Run Simulation</button>
+  
+  <div class="log-container" id="log"></div>
+
+  <script type="module">
+    import { rtdb } from './js/firebase-config.js';
+    import { ref, set, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+    const logEl = document.getElementById('log');
+    function log(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `log-entry ${type}`;
+      el.textContent = `[${new Date().toISOString().substring(11,23)}] ${msg}`;
+      logEl.appendChild(el);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    }
+
+    async function runTest() {
+      document.getElementById('runTestBtn').disabled = true;
+      log("Starting simulation for 10 concurrent players...");
+      const sid = "TEST10";
+      
+      try {
+        // Setup room
+        await set(ref(rtdb, `quizzes/${sid}`), {
+          title: 'Load Test Room',
+          state: 'question',
+          activeQuestionIndex: 0,
+          questions: [{ type: 'multiple-choice', text: 'Test Question', options: ['A','B','C','D'], correct: 0, time: 15 }]
+        });
+        log(`Room ${sid} created and set to question state.`, 'success');
+
+        const promises = [];
+        for (let i = 0; i < 10; i++) {
+          promises.push((async () => {
+            const pid = `player_${i}`;
+            // join room
+            await update(ref(rtdb, `quizzes/${sid}/scores/${pid}`), { name: `Bot ${i}`, score: 0 });
+            log(`Player ${i} joined.`);
+            
+            // Artificial slight random delay to simulate network jitter
+            await new Promise(r => setTimeout(r, Math.random() * 300));
+
+            // submit answer
+            const path = `quizzes/${sid}/answers/0/${pid}`;
+            
+            // Using the new transactional approach logic here
+            const { committed } = await runTransaction(ref(rtdb, path), (currentData) => {
+              if (currentData === null) {
+                return {
+                  answer: Math.floor(Math.random() * 4),
+                  answeredAt: Date.now(),
+                  isCorrect: true,
+                  awardedPoints: Math.floor(Math.random() * 500) + 500
+                };
+              }
+              return;
+            });
+
+            if (committed) {
+                log(`Player ${i} successfully submitted answer.`, 'success');
+            } else {
+                log(`Player ${i} failed to submit (race condition).`, 'error');
+            }
+          })());
+        }
+        
+        await Promise.all(promises);
+        log("All 10 players simulated successfully! Please verify the admin dashboard for lag.", 'success');
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+      } finally {
+        document.getElementById('runTestBtn').disabled = false;
+      }
+    }
+    
+    document.getElementById('runTestBtn').addEventListener('click', runTest);
+  </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { rtdb } from './firebase-config.js';
-import { ref, push, set, update, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+import { ref, push, set, update, onValue, get, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
 const QUIZZES_ROOT = 'quizzes';
 
@@ -158,9 +158,6 @@ window.quiz = {
     const question = Array.isArray(session.questions) ? session.questions[qIdx] : null;
     if (!question) return false;
 
-    const existingAnswerSnap = await get(ref(rtdb, path));
-    if (existingAnswerSnap.exists()) return false;
-
     const answeredAt = Date.now();
     const isCorrect = Number(answerIdx) === Number(question.correct);
     let awardedPoints = 0;
@@ -173,13 +170,19 @@ window.quiz = {
       awardedPoints = Math.round(500 + (speedRatio * 500));
     }
 
-    await set(ref(rtdb, path), {
-      answer: answerIdx,
-      answeredAt,
-      isCorrect,
-      awardedPoints,
+    const { committed, snapshot } = await runTransaction(ref(rtdb, path), (currentData) => {
+      if (currentData === null) {
+        return {
+          answer: answerIdx,
+          answeredAt,
+          isCorrect,
+          awardedPoints,
+        };
+      }
+      return; // abort transaction if data already exists
     });
-    return true;
+
+    return committed;
   },
 
   submitWordCloudAnswer: async (sid, qIdx, pid, words) => {
@@ -240,15 +243,6 @@ window.quiz = {
       answeredAt: Date.now()
     });
     return true;
-  },
-
-  sendReaction: async (sid, type) => {
-    const reactionsRef = push(ref(rtdb, `${QUIZZES_ROOT}/${sid}/reactions`));
-    await set(reactionsRef, {
-      type: String(type),
-      ts: Date.now()
-    });
-    return reactionsRef.key;
   },
 
   submitQaQuestion: async (sid, name, avatar, text) => {
@@ -392,7 +386,6 @@ window.quiz = {
       scores: {},
       players: {},
       answers: {},
-      reactions: {},
       qa: {},
       showResults: true,
     });
