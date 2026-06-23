@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hall of Fame</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myHQ Arcade | Hall of Fame</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .modal-overlay {
@@ -15,9 +16,10 @@
         }
         .close-btn {
             position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #64748b; font-weight: bold; line-height: 1;
+            border: none; background: transparent; padding: 0;
         }
         .close-btn:hover { color: #000; }
-        .event-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent); }
+        .event-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent); width: 100%; font: inherit; color: inherit; text-align: center; appearance: none; -webkit-appearance: none; }
         .event-card:hover { transform: translateY(-4px); box-shadow: var(--card-shadow); }
     </style>
 </head>
@@ -30,9 +32,9 @@
     </div>
 
     <!-- Modal for showing winners -->
-    <div class="modal-overlay" id="winnerModal">
+    <div class="modal-overlay" id="winnerModal" role="dialog" aria-modal="true" aria-labelledby="modalEventTitle">
         <div class="modal-card">
-            <span class="close-btn" onclick="closeModal()">×</span>
+            <button type="button" class="close-btn" id="closeModalBtn" aria-label="Close champions modal">×</button>
             <h2 id="modalEventTitle" class="mb-4 text-center">Event Champions</h2>
             <div class="game-grid" id="modalWinnerGrid"></div>
         </div>
@@ -55,6 +57,16 @@
                 .trim() || 'Unnamed Event';
         }
 
+        function safeUrl(value) {
+            if (!value) return '';
+            try {
+                const url = new URL(String(value), window.location.href);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+            } catch (err) {
+                return '';
+            }
+        }
+
         async function loadEventsWithWinners() {
             const grid = document.getElementById('eventGrid');
             grid.innerHTML = '<p class="text-center text-muted" style="grid-column: 1/-1;">Loading champions...</p>';
@@ -75,20 +87,40 @@
                 return;
             }
 
-            let htmlContent = "";
+            grid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             eventNames.forEach((evtName) => {
                 const winnersCount = eventsMap[evtName].length;
-                htmlContent += `
-                    <div class="card event-card text-center" onclick="openModal('${evtName.replace(/'/g, "\\'")}')">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">👑</div>
-                        <h2 class="mb-2">${evtName}</h2>
-                        <div class="badge-accent mt-2" style="display:inline-block;">
-                            <strong>${winnersCount} Champion${winnersCount > 1 ? 's' : ''}</strong>
-                        </div>
-                        <p class="text-muted mt-3" style="font-size: 0.9rem;">Click to view winners →</p>
-                    </div>`;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'card event-card text-center';
+                button.dataset.eventName = evtName;
+
+                const icon = document.createElement('div');
+                icon.style.fontSize = '3rem';
+                icon.style.marginBottom = '10px';
+                icon.textContent = '👑';
+
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'mb-2';
+                titleEl.textContent = evtName;
+
+                const badge = document.createElement('div');
+                badge.className = 'badge-accent mt-2';
+                badge.style.display = 'inline-block';
+                const strong = document.createElement('strong');
+                strong.textContent = `${winnersCount} Champion${winnersCount > 1 ? 's' : ''}`;
+                badge.appendChild(strong);
+
+                const hint = document.createElement('p');
+                hint.className = 'text-muted mt-3';
+                hint.style.fontSize = '0.9rem';
+                hint.textContent = 'Click to view winners →';
+
+                button.append(icon, titleEl, badge, hint);
+                fragment.appendChild(button);
             });
-            grid.innerHTML = htmlContent;
+            grid.appendChild(fragment);
         }
 
         window.openModal = (eventName) => {
@@ -99,25 +131,59 @@
             title.innerText = eventName + ' - Champions';
             
             const winners = eventsMap[eventName] || [];
-            let htmlContent = "";
+            grid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             winners.forEach((w) => {
-                htmlContent += `
-                    <div class="card text-center" style="box-shadow:none; border:1px solid #e2e8f0; border-top: 4px solid var(--accent);">
-                        <img src="${w.img}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; margin:0 auto 15px; border:4px solid var(--accent);">
-                        <h2 class="mb-1">${w.name}</h2>
-                        <div class="badge-accent mt-3">
-                            <strong>Won: ${w.tier}</strong>
-                        </div>
-                    </div>`;
+                const card = document.createElement('div');
+                card.className = 'card text-center';
+                card.style.boxShadow = 'none';
+                card.style.border = '1px solid #e2e8f0';
+                card.style.borderTop = '4px solid var(--accent)';
+
+                const imgUrl = safeUrl(w.img);
+                if (imgUrl) {
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.alt = `${w.name || 'Champion'} portrait`;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.borderRadius = '50%';
+                    img.style.objectFit = 'cover';
+                    img.style.margin = '0 auto 15px';
+                    img.style.border = '4px solid var(--accent)';
+                    card.appendChild(img);
+                }
+
+                const nameEl = document.createElement('h2');
+                nameEl.className = 'mb-1';
+                nameEl.textContent = w.name || 'Unnamed Champion';
+
+                const badge = document.createElement('div');
+                badge.className = 'badge-accent mt-3';
+                const strong = document.createElement('strong');
+                strong.textContent = `Won: ${w.tier || '--'}`;
+                badge.appendChild(strong);
+
+                card.append(nameEl, badge);
+                fragment.appendChild(card);
             });
             
-            grid.innerHTML = htmlContent;
+            grid.appendChild(fragment);
             modal.style.display = 'flex';
         };
 
         window.closeModal = () => {
             document.getElementById('winnerModal').style.display = 'none';
         };
+
+        document.getElementById('eventGrid').addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-event-name]');
+            if (trigger) {
+                window.openModal(trigger.dataset.eventName);
+            }
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', window.closeModal);
 
         // Close when clicking outside the modal content
         window.onclick = function(event) {
@@ -126,6 +192,12 @@
                 closeModal();
             }
         };
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                window.closeModal();
+            }
+        });
 
         loadEventsWithWinners();
     </script>

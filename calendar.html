@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Arcade Calendar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myHQ Arcade | Calendar</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .calendar-layout {
@@ -145,6 +146,25 @@
             return ev.game || 'Base Game';
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function safeUrl(value) {
+            if (!value) return '';
+            try {
+                const url = new URL(String(value), window.location.href);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+            } catch (err) {
+                return '';
+            }
+        }
+
         window.eventRules = {};
         window.showRulesModal = (docId) => {
             const rulesText = window.eventRules[docId] || 'No rules provided for this event.';
@@ -167,11 +187,11 @@
                     </div>
                     <div class="event-details">
                         <div class="event-meta">
-                            <span class="event-chip">${getEventLabel(ev)}</span>
-                            <span class="event-chip">${ev.type === 'external' ? 'External Event' : 'Base Game'}</span>
+                            <span class="event-chip">${escapeHtml(getEventLabel(ev))}</span>
+                            <span class="event-chip">${escapeHtml(ev.type === 'external' ? 'External Event' : 'Base Game')}</span>
                         </div>
-                        <h2 class="mb-1 mt-3">${ev.title || 'Untitled Event'}</h2>
-                        <p class="text-muted">Time: ${timeLabel}</p>
+                        <h2 class="mb-1 mt-3">${escapeHtml(ev.title || 'Untitled Event')}</h2>
+                        <p class="text-muted">Time: ${escapeHtml(timeLabel)}</p>
                         <p class="mb-2">${ev.type === 'external' ? 'This event includes platform links and supporting details.' : 'This event is tied to one of the arcade games.'}</p>
                         <button class="btn btn-outline" style="width:auto; margin-top: 10px;" onclick="window.showRulesModal('${docId}')">Read Rules</button>
                     </div>
@@ -209,16 +229,23 @@
                 ? futureEvents.slice(0, 6).map((ev) => {
                     const date = ev.parsedDate;
                     const platforms = Array.isArray(ev.platforms) && ev.platforms.length
-                        ? ev.platforms.map((platform) => `<div class="detail-line"><strong>${platform.name}:</strong> <a href="${platform.link}" target="_blank" style="color: var(--primary); text-decoration: underline;">${platform.link}</a></div>`).join('')
+                        ? ev.platforms.map((platform) => {
+                            const platformName = escapeHtml(platform?.name || 'Platform');
+                            const platformLabel = escapeHtml(platform?.link || '--');
+                            const platformHref = safeUrl(platform?.link);
+                            return platformHref
+                                ? `<div class="detail-line"><strong>${platformName}:</strong> <a href="${platformHref}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">${platformLabel}</a></div>`
+                                : `<div class="detail-line"><strong>${platformName}:</strong> ${platformLabel}</div>`;
+                        }).join('')
                         : '';
                     
                     return `
                         <div class="upcoming-item">
-                            <span class="event-chip">${getEventLabel(ev)}</span>
-                            <h3>${ev.title || 'Untitled Event'}</h3>
-                            <div class="small-meta">${date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '--'} · ${ev.time || '--'}</div>
-                            <div class="detail-line"><strong>Type:</strong> ${ev.type === 'external' ? 'External Event' : 'Base Game'}</div>
-                            ${ev.type === 'external' ? `<div class="detail-line"><strong>Category:</strong> ${ev.category || '--'}</div>` : ''}
+                            <span class="event-chip">${escapeHtml(getEventLabel(ev))}</span>
+                            <h3>${escapeHtml(ev.title || 'Untitled Event')}</h3>
+                            <div class="small-meta">${escapeHtml(date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '--')} · ${escapeHtml(ev.time || '--')}</div>
+                            <div class="detail-line"><strong>Type:</strong> ${escapeHtml(ev.type === 'external' ? 'External Event' : 'Base Game')}</div>
+                            ${ev.type === 'external' ? `<div class="detail-line"><strong>Category:</strong> ${escapeHtml(ev.category || '--')}</div>` : ''}
                             ${platforms}
                             <button class="btn btn-outline" style="width:auto; padding: 6px 14px; font-size: 0.8rem; margin-top: 10px;" onclick="window.showRulesModal('${ev.id}')">Read Rules</button>
                         </div>`;
@@ -232,7 +259,7 @@
         <div class="modal-content" style="max-width: 700px; text-align: left; padding: 0; display: flex; flex-direction: column; max-height: 85vh;">
             <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fffcf9; border-radius: 24px 24px 0 0;">
                 <h2 style="margin: 0; color: #ef4444; font-size: 1.5rem;">Event Rulebook</h2>
-                <button onclick="document.getElementById('rulesModal').style.display='none'" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+                <button type="button" aria-label="Close rules modal" onclick="document.getElementById('rulesModal').style.display='none'" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
             <div id="rulesModalBody" style="padding: 30px; overflow-y: auto; white-space: pre-wrap; font-size: 1rem; line-height: 1.7; color: var(--text-main);">
                 Loading rules...

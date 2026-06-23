@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Loot Room</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myHQ Arcade | Loot Room</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .modal-overlay {
@@ -15,9 +16,10 @@
         }
         .close-btn {
             position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #64748b; font-weight: bold; line-height: 1;
+            border: none; background: transparent; padding: 0;
         }
         .close-btn:hover { color: #000; }
-        .event-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent); }
+        .event-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid var(--accent); width: 100%; font: inherit; color: inherit; text-align: center; appearance: none; -webkit-appearance: none; }
         .event-card:hover { transform: translateY(-4px); box-shadow: var(--card-shadow); }
     </style>
 </head>
@@ -30,9 +32,9 @@
     </div>
 
     <!-- Modal for showing prizes -->
-    <div class="modal-overlay" id="prizeModal">
+    <div class="modal-overlay" id="prizeModal" role="dialog" aria-modal="true" aria-labelledby="modalEventTitle">
         <div class="modal-card">
-            <span class="close-btn" onclick="closeModal()">×</span>
+            <button type="button" class="close-btn" id="closeModalBtn" aria-label="Close prizes modal">×</button>
             <h2 id="modalEventTitle" class="mb-4 text-center">Event Prizes</h2>
             <div class="game-grid" id="modalPrizeGrid"></div>
         </div>
@@ -56,6 +58,16 @@
                 .trim() || 'Unnamed Event';
         }
 
+        function safeUrl(value) {
+            if (!value) return '';
+            try {
+                const url = new URL(String(value), window.location.href);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+            } catch (err) {
+                return '';
+            }
+        }
+
         async function loadEventsWithPrizes() {
             const grid = document.getElementById('eventGrid');
             grid.innerHTML = '<p class="text-center text-muted" style="grid-column: 1/-1;">Loading events...</p>';
@@ -76,20 +88,40 @@
                 return;
             }
 
-            let htmlContent = "";
+            grid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             eventNames.forEach((evtName) => {
                 const prizesCount = eventsMap[evtName].length;
-                htmlContent += `
-                    <div class="card event-card text-center" onclick="openModal('${evtName.replace(/'/g, "\\'")}')">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">🎁</div>
-                        <h2 class="mb-2">${evtName}</h2>
-                        <div class="badge-accent mt-2" style="display:inline-block;">
-                            <strong>${prizesCount} Prize${prizesCount > 1 ? 's' : ''}</strong>
-                        </div>
-                        <p class="text-muted mt-3" style="font-size: 0.9rem;">Click to view stash →</p>
-                    </div>`;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'card event-card text-center';
+                button.dataset.eventName = evtName;
+
+                const icon = document.createElement('div');
+                icon.style.fontSize = '3rem';
+                icon.style.marginBottom = '10px';
+                icon.textContent = '🎁';
+
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'mb-2';
+                titleEl.textContent = evtName;
+
+                const badge = document.createElement('div');
+                badge.className = 'badge-accent mt-2';
+                badge.style.display = 'inline-block';
+                const strong = document.createElement('strong');
+                strong.textContent = `${prizesCount} Prize${prizesCount > 1 ? 's' : ''}`;
+                badge.appendChild(strong);
+
+                const hint = document.createElement('p');
+                hint.className = 'text-muted mt-3';
+                hint.style.fontSize = '0.9rem';
+                hint.textContent = 'Click to view stash →';
+
+                button.append(icon, titleEl, badge, hint);
+                fragment.appendChild(button);
             });
-            grid.innerHTML = htmlContent;
+            grid.appendChild(fragment);
         }
 
         window.openModal = (eventName) => {
@@ -100,25 +132,68 @@
             title.innerText = eventName + ' - Prizes';
             
             const prizes = eventsMap[eventName] || [];
-            let htmlContent = "";
+            grid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             prizes.forEach((p) => {
-                htmlContent += `
-                    <div class="card" style="box-shadow:none; border:1px solid #e2e8f0;">
-                        <div class="mono badge-accent" style="position:absolute; top:15px; right:15px;">${p.tier}</div>
-                        <div style="height:150px; background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:15px; display:flex; align-items:center; justify-content:center; padding:10px;">
-                            <img src="${p.img}" style="max-height:100%; max-width:100%; border-radius:8px;">
-                        </div>
-                        <h3 class="mb-1">${p.name}</h3>
-                    </div>`;
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.boxShadow = 'none';
+                card.style.border = '1px solid #e2e8f0';
+
+                const tier = document.createElement('div');
+                tier.className = 'mono badge-accent';
+                tier.style.position = 'absolute';
+                tier.style.top = '15px';
+                tier.style.right = '15px';
+                tier.textContent = p.tier || '--';
+
+                const media = document.createElement('div');
+                media.style.height = '150px';
+                media.style.background = 'rgba(255,255,255,0.05)';
+                media.style.borderRadius = '12px';
+                media.style.marginBottom = '15px';
+                media.style.display = 'flex';
+                media.style.alignItems = 'center';
+                media.style.justifyContent = 'center';
+                media.style.padding = '10px';
+
+                const imgUrl = safeUrl(p.img);
+                if (imgUrl) {
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.alt = `${p.name || 'Prize'} image`;
+                    img.style.maxHeight = '100%';
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    media.appendChild(img);
+                } else {
+                    media.textContent = 'No prize image';
+                }
+
+                const nameEl = document.createElement('h3');
+                nameEl.className = 'mb-1';
+                nameEl.textContent = p.name || 'Unnamed Prize';
+
+                card.append(tier, media, nameEl);
+                fragment.appendChild(card);
             });
             
-            grid.innerHTML = htmlContent;
+            grid.appendChild(fragment);
             modal.style.display = 'flex';
         };
 
         window.closeModal = () => {
             document.getElementById('prizeModal').style.display = 'none';
         };
+
+        document.getElementById('eventGrid').addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-event-name]');
+            if (trigger) {
+                window.openModal(trigger.dataset.eventName);
+            }
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', window.closeModal);
 
         // Close when clicking outside the modal content
         window.onclick = function(event) {
@@ -127,6 +202,12 @@
                 closeModal();
             }
         };
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                window.closeModal();
+            }
+        });
 
         loadEventsWithPrizes();
     </script>
